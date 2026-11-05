@@ -14,12 +14,25 @@ import { CheckoutDto } from './dto/checkout.dto';
 import { Order, OrderStatus } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 
+export class StockVersionConflictError extends Error {}
+
 @Injectable()
 export class OrdersService {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
   async checkout(sessionId: string, dto: CheckoutDto): Promise<Order> {
-    return this.dataSource.transaction((manager) => this.checkoutOnce(manager, sessionId, dto));
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        return await this.dataSource.transaction((manager) =>
+          this.checkoutOnce(manager, sessionId, dto),
+        );
+      } catch (error) {
+        if (!(error instanceof StockVersionConflictError)) throw error;
+        if (attempt === 3) throw new ConflictException('Stock changed during checkout');
+      }
+    }
+
+    throw new ConflictException('Stock changed during checkout');
   }
 
   private async checkoutOnce(
@@ -58,7 +71,10 @@ export class OrdersService {
          RETURNING id, stock, stock_version`,
         [line.item.quantity, line.product.id, line.product.stockVersion],
       );
-      if (result.length === 0) await this.throwStockFailure(manager, line.product.id, line.item.quantity);
+      const updatedRows = Array.isArray(result[0]) ? result[0] : result;
+      if (updatedRows.length === 0) {
+        await this.throwStockFailure(manager, line.product.id, line.item.quantity);
+      }
     }
 
     const totalAmount = sumMoney(lines.map((line) => line.subtotal));
@@ -91,6 +107,6 @@ export class OrdersService {
     if (!product) throw new NotFoundException('Product not found');
     if (!product.isActive) throw new UnprocessableEntityException('Product is inactive');
     if (product.stock < quantity) throw new ConflictException('Insufficient stock');
-    throw new ConflictException('Stock version conflict');
+    throw new StockVersionConflictError('Stock version conflict');
   }
 }
