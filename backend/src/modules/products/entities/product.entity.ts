@@ -31,6 +31,9 @@ export class Product {
   @Column({ type: 'integer', default: 0 })
   stock!: number;
 
+  @Column({ name: 'stock_version', type: 'integer', default: 0 })
+  stockVersion!: number;
+
   @Column({
     name: 'is_active',
     type: 'boolean',
