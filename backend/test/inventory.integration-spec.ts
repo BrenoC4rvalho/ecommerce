@@ -83,7 +83,37 @@ describe('inventory concurrency integration', () => {
       createCartWithItem(product, 3),
       createCartWithItem(product, 3),
     ]);
-    await expect(Promise.all([checkout(first), checkout(second)])).resolves.toHaveLength(2);
+    const listener = new Client({
+      host: process.env.DB_HOST ?? 'localhost',
+      port: Number(process.env.DB_PORT ?? 5432),
+      user: process.env.DB_USER ?? 'ecommerce',
+      password: process.env.DB_PASSWORD ?? 'ecommerce_dev',
+      database: testDatabase,
+    });
+    await listener.connect();
+    await listener.query('LISTEN checkout_barrier');
+    const barrierReached = new Promise<void>((resolve) => listener.once('notification', () => resolve()));
+    await dataSource.query(`
+      CREATE OR REPLACE FUNCTION checkout_test_barrier() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN
+        PERFORM pg_notify('checkout_barrier', 'stock-update-started');
+        PERFORM pg_sleep(0.2);
+        RETURN NEW;
+      END;
+      $$;
+      CREATE TRIGGER checkout_test_barrier_trigger BEFORE UPDATE ON products
+      FOR EACH ROW EXECUTE FUNCTION checkout_test_barrier();
+    `);
+
+    try {
+      const firstCheckout = checkout(first);
+      await barrierReached;
+      await expect(Promise.all([firstCheckout, checkout(second)])).resolves.toHaveLength(2);
+    } finally {
+      await dataSource.query('DROP TRIGGER IF EXISTS checkout_test_barrier_trigger ON products');
+      await dataSource.query('DROP FUNCTION IF EXISTS checkout_test_barrier()');
+      await listener.end();
+    }
 
     const stored = await dataSource.getRepository(Product).findOneByOrFail({ id: product.id });
     expect(stored.stock).toBe(4);
