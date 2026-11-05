@@ -1,0 +1,79 @@
+# Dependências e caches de gerenciadores de pacotes
+**/node_modules/
+**/.npm/
+**/.yarn/cache/
+**/.yarn/install-state.gz
+**/.pnpm-store/
+**/.pnp.*
+
+# Logs, diagnósticos e dados de execução
+**/logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+**/*.pid
+**/*.pid.lock
+**/*.seed
+
+# Saídas de build e caches de ferramentas
+**/dist/
+**/build/
+**/.next/
+**/out/
+**/.cache/
+**/.vite/
+**/.turbo/
+**/coverage/
+**/.nyc_output/
+*.tsbuildinfo
+
+# Variáveis de ambiente: exemplos podem ser versionados
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.sample
+
+# Certificados, chaves privadas e outros artefatos sensíveis
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.crt
+**/*.cer
+**/*.der
+
+# Dumps locais do PostgreSQL e dados temporários de volumes
+**/*.dump
+**/*.backup
+**/db-dumps/
+**/database-dumps/
+**/postgres-data/
+**/pgdata/
+**/.pgdata/
+**/.tmp/
+**/tmp/
+
+# IDEs e arquivos de editores
+**/.idea/
+**/.vscode/*
+!**/.vscode/settings.json
+!**/.vscode/tasks.json
+!**/.vscode/launch.json
+!**/.vscode/extensions.json
+**/.project
+**/.classpath
+**/.settings/
+**/*.sublime-workspace
+
+# Sistema operacional e arquivos temporários
+**/.DS_Store
+**/Thumbs.db
+**/Desktop.ini
+**/*~
+**/*.swp
+**/*.swo
+**/.#*
