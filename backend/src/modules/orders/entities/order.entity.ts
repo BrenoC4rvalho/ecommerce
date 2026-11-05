@@ -4,11 +4,13 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Cart } from '../../carts/entities/cart.entity';
+import { OrderItem } from './order-item.entity';
 
 export enum OrderStatus {
   CONFIRMED = 'CONFIRMED',
@@ -46,6 +48,9 @@ export class Order {
     scale: 2,
   })
   totalAmount!: string;
+
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.order)
+  items!: OrderItem[];
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
