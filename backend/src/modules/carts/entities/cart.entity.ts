@@ -3,9 +3,11 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { CartItem } from './cart-item.entity';
 
 export enum CartStatus {
   ACTIVE = 'ACTIVE',
@@ -27,6 +29,9 @@ export class Cart {
     default: CartStatus.ACTIVE,
   })
   status!: CartStatus;
+
+  @OneToMany(() => CartItem, (cartItem) => cartItem.cart)
+  items!: CartItem[];
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
