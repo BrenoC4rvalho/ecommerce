@@ -54,7 +54,7 @@ export class EmailOutboxProcessor {
   }
 
   private async claimPending(): Promise<ClaimedOutbox[]> {
-    const rows = await this.dataSource.transaction((manager) =>
+    const result = await this.dataSource.transaction((manager) =>
       manager.query(
         `WITH candidates AS (
            SELECT id
@@ -81,6 +81,7 @@ export class EmailOutboxProcessor {
       ),
     );
 
+    const rows = Array.isArray(result[0]) ? result[0] : result;
     return rows.map((row: { id: string; processing_token: string }) => ({
       id: row.id,
       processingToken: row.processing_token,

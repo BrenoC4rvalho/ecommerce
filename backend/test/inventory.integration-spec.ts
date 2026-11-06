@@ -8,6 +8,7 @@ import { CartsService } from '../src/modules/carts/carts.service';
 import { OrdersService } from '../src/modules/orders/orders.service';
 import { Order } from '../src/modules/orders/entities/order.entity';
 import { Product } from '../src/modules/products/entities/product.entity';
+import { EmailEventType, EmailOutbox, EmailOutboxStatus } from '../src/modules/mail/entities/email-outbox.entity';
 
 const testDatabase = process.env.TEST_DB_NAME ?? 'ecommerce_test';
 let dataSource: DataSource;
@@ -164,6 +165,7 @@ describe('inventory concurrency integration', () => {
     expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
     expect(await dataSource.getRepository(Order).count()).toBe(1);
     expect((await dataSource.getRepository(Product).findOneByOrFail({ id: product.id })).stock).toBe(1);
+    expect(await dataSource.getRepository(EmailOutbox).count()).toBe(1);
   });
 
   it('increments stock version for an administrative stock update', async () => {
@@ -174,6 +176,56 @@ describe('inventory concurrency integration', () => {
     );
     const stored = await dataSource.getRepository(Product).findOneByOrFail({ id: product.id });
     expect(stored).toMatchObject({ stock: 5, stockVersion: 1 });
+  });
+
+  it('creates a pending order-confirmation outbox record atomically with checkout', async () => {
+    const product = await createProduct(2);
+    const cart = await createCartWithItem(product, 1);
+
+    const order = await checkout(cart);
+    const outbox = await dataSource.getRepository(EmailOutbox).findOneByOrFail({ orderId: order.id });
+
+    expect(outbox).toMatchObject({
+      recipient: order.customerEmail,
+      eventType: EmailEventType.ORDER_CONFIRMATION,
+      status: EmailOutboxStatus.PENDING,
+      attempts: 0,
+    });
+  });
+
+  it('does not create an outbox record when checkout fails', async () => {
+    const product = await createProduct(0);
+    const cart = await createCartWithItem(product, 1);
+
+    await expect(checkout(cart)).rejects.toMatchObject({ status: 409 });
+
+    expect(await dataSource.getRepository(EmailOutbox).count()).toBe(0);
+  });
+
+  it('rolls back the checkout when inserting the outbox fails', async () => {
+    const product = await createProduct(2);
+    const cart = await createCartWithItem(product, 1);
+    await dataSource.query(`
+      CREATE OR REPLACE FUNCTION fail_email_outbox_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN
+        RAISE EXCEPTION 'outbox unavailable';
+      END;
+      $$;
+      CREATE TRIGGER fail_email_outbox_insert_trigger BEFORE INSERT ON email_outbox
+      FOR EACH ROW EXECUTE FUNCTION fail_email_outbox_insert();
+    `);
+
+    try {
+      await expect(checkout(cart)).rejects.toThrow('outbox unavailable');
+    } finally {
+      await dataSource.query('DROP TRIGGER IF EXISTS fail_email_outbox_insert_trigger ON email_outbox');
+      await dataSource.query('DROP FUNCTION IF EXISTS fail_email_outbox_insert()');
+    }
+
+    expect(await dataSource.getRepository(Order).count()).toBe(0);
+    expect(await dataSource.getRepository(EmailOutbox).count()).toBe(0);
+    expect((await dataSource.getRepository(Product).findOneByOrFail({ id: product.id })).stock).toBe(2);
+    expect((await dataSource.getRepository(Cart).findOneByOrFail({ id: cart.id })).status).toBe(CartStatus.ACTIVE);
   });
 
   it('adds a quantity lower than the available stock without decrementing inventory', async () => {
