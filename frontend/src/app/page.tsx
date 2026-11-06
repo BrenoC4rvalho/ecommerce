@@ -1,16 +1,12 @@
-import { ApiStatus } from "@/components/ui/api-status";
-import { EmailFormExample } from "@/components/ui/email-form-example";
+"use client";
+
+import { useState } from "react";
+import { Container } from "@/components/layout/container";
+import { Header } from "@/components/layout/header";
+import { ProductGridLoading } from "@/features/products/components/product-grid";
 
 export default function Home() {
-  return (
-    <main className="mx-auto flex min-h-screen max-w-4xl items-center px-6 py-16">
-      <section className="w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <p className="text-sm font-medium text-indigo-600">Setup inicial</p>
-        <h1 className="mt-2 text-4xl font-bold tracking-tight">E-commerce</h1>
-        <p className="mt-4 text-slate-600">Frontend Next.js funcionando.</p>
-        <ApiStatus />
-        <EmailFormExample />
-      </section>
-    </main>
-  );
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  return <div className="min-h-screen bg-white"><Header itemCount={0} onOpenCart={() => setIsCartOpen(true)} /><main><Container><section className="py-8 sm:py-10"><div className="mb-6 flex items-center justify-between sm:mb-8"><h1 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">Produtos</h1></div><ProductGridLoading /></section></Container></main>{isCartOpen ? <div aria-hidden="true" className="fixed inset-0 bg-black/40" onClick={() => setIsCartOpen(false)} /> : null}</div>;
 }
