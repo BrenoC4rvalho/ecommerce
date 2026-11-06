@@ -13,6 +13,7 @@ import { AppDataSource } from './database/data-source';
       ...AppDataSource.options,
       autoLoadEntities: true,
       synchronize: false,
+      migrationsRun: process.env.TYPEORM_MIGRATIONS_RUN === 'true',
     }),
 
     ProductsModule,
