@@ -1,3 +1,4 @@
+import { ApiStatus } from "@/components/ui/api-status";
 import { EmailFormExample } from "@/components/ui/email-form-example";
 
 export default function Home() {
@@ -7,6 +8,7 @@ export default function Home() {
         <p className="text-sm font-medium text-indigo-600">Setup inicial</p>
         <h1 className="mt-2 text-4xl font-bold tracking-tight">E-commerce</h1>
         <p className="mt-4 text-slate-600">Frontend Next.js funcionando.</p>
+        <ApiStatus />
         <EmailFormExample />
       </section>
     </main>
