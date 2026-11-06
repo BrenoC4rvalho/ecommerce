@@ -13,6 +13,7 @@ import { Product } from '../products/entities/product.entity';
 import { CheckoutDto } from './dto/checkout.dto';
 import { Order, OrderStatus } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
+import { EmailEventType, EmailOutbox, EmailOutboxStatus } from '../mail/entities/email-outbox.entity';
 
 export class StockVersionConflictError extends Error {}
 
@@ -98,6 +99,16 @@ export class OrdersService {
       })),
     );
     await manager.update(Cart, cart.id, { status: CartStatus.CHECKED_OUT });
+    await manager.save(
+      manager.create(EmailOutbox, {
+        orderId: order.id,
+        recipient: dto.customerEmail,
+        eventType: EmailEventType.ORDER_CONFIRMATION,
+        status: EmailOutboxStatus.PENDING,
+        attempts: 0,
+        nextAttemptAt: new Date(),
+      }),
+    );
 
     return manager.findOneOrFail(Order, { where: { id: order.id }, relations: { items: true } });
   }

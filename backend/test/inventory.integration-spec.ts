@@ -69,7 +69,7 @@ describe('inventory concurrency integration', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.query('TRUNCATE TABLE order_items, orders, cart_items, carts, products CASCADE');
+    await dataSource.query('TRUNCATE TABLE email_outbox, order_items, orders, cart_items, carts, products CASCADE');
   });
 
   afterAll(async () => dataSource.destroy());
