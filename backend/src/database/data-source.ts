@@ -6,6 +6,7 @@ import { Cart } from '../modules/carts/entities/cart.entity';
 import { CartItem } from '../modules/carts/entities/cart-item.entity';
 import { Order } from '../modules/orders/entities/order.entity';
 import { OrderItem } from '../modules/orders/entities/order-item.entity';
+import { EmailOutbox } from '../modules/mail/entities/email-outbox.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -15,7 +16,7 @@ export const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD ?? 'ecommerce_dev',
   database: process.env.DB_NAME ?? 'ecommerce',
   
-  entities: [Product, Cart, CartItem, Order, OrderItem],
+  entities: [Product, Cart, CartItem, Order, OrderItem, EmailOutbox],
 
    migrations: [
     __dirname + '/migrations/*{.ts,.js}',
