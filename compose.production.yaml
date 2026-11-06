@@ -1,0 +1,13 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      BACKEND_INTERNAL_URL: http://backend:3000
+    volumes: !reset []
+
+  backend:
+    environment:
+      NODE_ENV: production
