@@ -13,11 +13,12 @@ export class ProductsService {
     private readonly productsRepository: Repository<Product>,
   ) {}
 
-  async findAll({ page = 1, limit = 20 }: ListProductsQueryDto) {
+  async findAll({ page = 1, limit = 20, isActive }: ListProductsQueryDto) {
     const [data, total] = await this.productsRepository.findAndCount({
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
+      ...(isActive === undefined ? {} : { where: { isActive } }),
     });
 
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
