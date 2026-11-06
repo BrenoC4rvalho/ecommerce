@@ -34,5 +34,9 @@ export function useCart() {
 
   const itemCount = cart.data?.items.reduce((total, item) => total + item.quantity, 0) ?? 0;
   const error = add.error ?? update.error ?? remove.error ?? create.error ?? cart.error;
-  return { cart: cart.data, cartId, itemCount, ensureCart, add, update, remove, error, isLoading: cart.isPending || create.isPending };
+  const clear = () => {
+    if (cartId) queryClient.removeQueries({ queryKey: cartQueryKey(cartId) });
+    setCartId(undefined);
+  };
+  return { cart: cart.data, cartId, itemCount, ensureCart, add, update, remove, clear, error, isLoading: cart.isPending || create.isPending };
 }
