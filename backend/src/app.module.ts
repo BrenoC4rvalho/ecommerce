@@ -7,6 +7,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppDataSource } from './database/data-source';
 import { MailModule } from './modules/mail/mail.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
    imports: [
@@ -16,6 +17,8 @@ import { MailModule } from './modules/mail/mail.module';
       synchronize: false,
       migrationsRun: process.env.TYPEORM_MIGRATIONS_RUN === 'true',
     }),
+
+    ScheduleModule.forRoot(),
 
     ProductsModule,
     CartsModule,
