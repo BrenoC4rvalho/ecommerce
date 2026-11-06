@@ -4,12 +4,14 @@ import { DataSource } from 'typeorm';
 import { AppDataSource } from '../src/database/data-source';
 import { CartItem } from '../src/modules/carts/entities/cart-item.entity';
 import { Cart, CartStatus } from '../src/modules/carts/entities/cart.entity';
+import { CartsService } from '../src/modules/carts/carts.service';
 import { OrdersService } from '../src/modules/orders/orders.service';
 import { Order } from '../src/modules/orders/entities/order.entity';
 import { Product } from '../src/modules/products/entities/product.entity';
 
 const testDatabase = process.env.TEST_DB_NAME ?? 'ecommerce_test';
 let dataSource: DataSource;
+let cartsService: CartsService;
 
 async function createDatabaseIfNeeded() {
   const client = new Client({
@@ -42,6 +44,14 @@ async function createCartWithItem(product: Product, quantity: number) {
   return cart;
 }
 
+async function createCart(): Promise<Cart> {
+  return dataSource.getRepository(Cart).save({ sessionId: randomUUID(), status: CartStatus.ACTIVE });
+}
+
+async function cartItem(cartId: string, productId: string): Promise<CartItem | null> {
+  return dataSource.getRepository(CartItem).findOneBy({ cartId, productId });
+}
+
 async function checkout(cart: Cart) {
   return new OrdersService(dataSource).checkout(cart.sessionId, {
     cartId: cart.id,
@@ -55,6 +65,7 @@ describe('inventory concurrency integration', () => {
     dataSource = new DataSource({ ...AppDataSource.options, database: testDatabase });
     await dataSource.initialize();
     await dataSource.runMigrations();
+    cartsService = new CartsService(dataSource, dataSource.getRepository(Cart));
   });
 
   beforeEach(async () => {
@@ -163,5 +174,109 @@ describe('inventory concurrency integration', () => {
     );
     const stored = await dataSource.getRepository(Product).findOneByOrFail({ id: product.id });
     expect(stored).toMatchObject({ stock: 5, stockVersion: 1 });
+  });
+
+  it('adds a quantity lower than the available stock without decrementing inventory', async () => {
+    const product = await createProduct(5);
+    const cart = await createCart();
+
+    await cartsService.addItem(cart.id, cart.sessionId, { productId: product.id, quantity: 3 });
+
+    expect(await cartItem(cart.id, product.id)).toMatchObject({ quantity: 3 });
+    expect(await dataSource.getRepository(Product).findOneByOrFail({ id: product.id }))
+      .toMatchObject({ stock: 5, stockVersion: 0 });
+  });
+
+  it('adds a quantity exactly equal to the available stock', async () => {
+    const product = await createProduct(5);
+    const cart = await createCart();
+
+    await cartsService.addItem(cart.id, cart.sessionId, { productId: product.id, quantity: 5 });
+
+    expect(await cartItem(cart.id, product.id)).toMatchObject({ quantity: 5 });
+  });
+
+  it('rejects an added quantity greater than stock without changing the cart', async () => {
+    const product = await createProduct(5);
+    const cart = await createCart();
+
+    await expect(cartsService.addItem(cart.id, cart.sessionId, { productId: product.id, quantity: 6 }))
+      .rejects.toMatchObject({
+        status: 409,
+        response: {
+          message: 'Quantidade solicitada excede o estoque disponível',
+          details: { productId: product.id, requestedQuantity: 6, availableQuantity: 5 },
+        },
+      });
+
+    expect(await cartItem(cart.id, product.id)).toBeNull();
+  });
+
+  it('sums quantities for an existing cart item up to the stock limit', async () => {
+    const product = await createProduct(5);
+    const cart = await createCart();
+
+    await cartsService.addItem(cart.id, cart.sessionId, { productId: product.id, quantity: 3 });
+    await cartsService.addItem(cart.id, cart.sessionId, { productId: product.id, quantity: 2 });
+
+    expect(await cartItem(cart.id, product.id)).toMatchObject({ quantity: 5 });
+  });
+
+  it('rejects an accumulated quantity above stock and preserves the existing item', async () => {
+    const product = await createProduct(5);
+    const cart = await createCart();
+    await cartsService.addItem(cart.id, cart.sessionId, { productId: product.id, quantity: 3 });
+
+    await expect(cartsService.addItem(cart.id, cart.sessionId, { productId: product.id, quantity: 3 }))
+      .rejects.toMatchObject({ status: 409 });
+
+    expect(await cartItem(cart.id, product.id)).toMatchObject({ quantity: 3 });
+    expect(await dataSource.getRepository(Product).findOneByOrFail({ id: product.id }))
+      .toMatchObject({ stock: 5, stockVersion: 0 });
+  });
+
+  it('updates an item quantity within the stock limit without decrementing inventory', async () => {
+    const product = await createProduct(10);
+    const cart = await createCartWithItem(product, 4);
+    const item = await cartItem(cart.id, product.id);
+
+    await cartsService.updateItem(cart.id, item!.id, cart.sessionId, { quantity: 8 });
+
+    expect(await cartItem(cart.id, product.id)).toMatchObject({ quantity: 8 });
+    expect(await dataSource.getRepository(Product).findOneByOrFail({ id: product.id }))
+      .toMatchObject({ stock: 10, stockVersion: 0 });
+  });
+
+  it('rejects an item quantity above stock and preserves its previous quantity', async () => {
+    const product = await createProduct(10);
+    const cart = await createCartWithItem(product, 4);
+    const item = await cartItem(cart.id, product.id);
+
+    await expect(cartsService.updateItem(cart.id, item!.id, cart.sessionId, { quantity: 11 }))
+      .rejects.toMatchObject({
+        status: 409,
+        response: {
+          message: 'Quantidade solicitada excede o estoque disponível',
+          details: { productId: product.id, requestedQuantity: 11, availableQuantity: 10 },
+        },
+      });
+
+    expect(await cartItem(cart.id, product.id)).toMatchObject({ quantity: 4 });
+  });
+
+  it('serializes concurrent additions to the same cart and product at the stock limit', async () => {
+    const product = await createProduct(5);
+    const cart = await createCart();
+
+    const results = await Promise.allSettled([
+      cartsService.addItem(cart.id, cart.sessionId, { productId: product.id, quantity: 3 }),
+      cartsService.addItem(cart.id, cart.sessionId, { productId: product.id, quantity: 3 }),
+    ]);
+
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1);
+    expect(await cartItem(cart.id, product.id)).toMatchObject({ quantity: 3 });
+    expect(await dataSource.getRepository(Product).findOneByOrFail({ id: product.id }))
+      .toMatchObject({ stock: 5, stockVersion: 0 });
   });
 });

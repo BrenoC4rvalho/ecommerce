@@ -32,7 +32,7 @@ export class CartsController {
   }
 
   @Post(':id/items')
-  @ApiConflictResponse({ description: 'Carrinho já finalizado' })
+  @ApiConflictResponse({ description: 'Carrinho já finalizado ou quantidade acima do estoque disponível' })
   addItem(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() dto: AddCartItemDto,
@@ -42,7 +42,7 @@ export class CartsController {
   }
 
   @Patch(':id/items/:itemId')
-  @ApiConflictResponse({ description: 'Carrinho já finalizado' })
+  @ApiConflictResponse({ description: 'Carrinho já finalizado ou quantidade acima do estoque disponível' })
   updateItem(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Param('itemId', new ParseUUIDPipe({ version: '4' })) itemId: string,

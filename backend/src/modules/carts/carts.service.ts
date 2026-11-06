@@ -59,16 +59,29 @@ export class CartsService {
   async addItem(id: string, sessionId: string, dto: AddCartItemDto) {
     await this.dataSource.transaction(async (manager) => {
       await this.requireActiveCart(manager, id, sessionId);
-      const product = await manager.findOneBy(Product, { id: dto.productId });
+      const product = await manager.findOne(Product, {
+        where: { id: dto.productId },
+        lock: { mode: 'pessimistic_read' },
+      });
       if (!product) throw new NotFoundException('Product not found');
 
-      await manager.query(
-        `INSERT INTO cart_items (id, cart_id, product_id, quantity, created_at, updated_at)
-         VALUES (uuid_generate_v4(), $1, $2, $3, now(), now())
-         ON CONFLICT (cart_id, product_id)
-         DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity, updated_at = now()`,
-        [id, dto.productId, dto.quantity],
-      );
+      const item = await manager.findOne(CartItem, {
+        where: { cartId: id, productId: dto.productId },
+      });
+      const requestedQuantity = (item?.quantity ?? 0) + dto.quantity;
+      this.ensureQuantityWithinStock(product, requestedQuantity);
+
+      if (item) {
+        item.quantity = requestedQuantity;
+        await manager.save(item);
+        return;
+      }
+
+      await manager.save(manager.create(CartItem, {
+        cartId: id,
+        productId: dto.productId,
+        quantity: dto.quantity,
+      }));
     });
     return this.findOne(id, sessionId);
   }
@@ -76,8 +89,18 @@ export class CartsService {
   async updateItem(id: string, itemId: string, sessionId: string, dto: UpdateCartItemDto) {
     await this.dataSource.transaction(async (manager) => {
       await this.requireActiveCart(manager, id, sessionId);
-      const result = await manager.update(CartItem, { id: itemId, cartId: id }, { quantity: dto.quantity });
-      if (!result.affected) throw new NotFoundException('Cart item not found');
+      const item = await manager.findOne(CartItem, { where: { id: itemId, cartId: id } });
+      if (!item) throw new NotFoundException('Cart item not found');
+
+      const product = await manager.findOne(Product, {
+        where: { id: item.productId },
+        lock: { mode: 'pessimistic_read' },
+      });
+      if (!product) throw new NotFoundException('Product not found');
+
+      this.ensureQuantityWithinStock(product, dto.quantity);
+      item.quantity = dto.quantity;
+      await manager.save(item);
     });
     return this.findOne(id, sessionId);
   }
@@ -100,5 +123,18 @@ export class CartsService {
       throw new ConflictException('Cart has already been checked out');
     }
     return cart;
+  }
+
+  private ensureQuantityWithinStock(product: Product, requestedQuantity: number): void {
+    if (requestedQuantity <= product.stock) return;
+
+    throw new ConflictException({
+      message: 'Quantidade solicitada excede o estoque disponível',
+      details: {
+        productId: product.id,
+        requestedQuantity,
+        availableQuantity: product.stock,
+      },
+    });
   }
 }
