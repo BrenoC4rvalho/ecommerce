@@ -32,7 +32,7 @@ Para validar a configuração:
 ```bash
 docker compose -f compose.yaml -f compose.dev.yaml config
 docker compose -f compose.yaml -f compose.dev.yaml exec frontend npm run test:smoke
-docker compose -f compose.yaml -f compose.dev.yaml exec -e FRONTEND_URL=http://localhost:3000 frontend npm run test:purchase-flow
+docker compose -f compose.yaml -f compose.dev.yaml exec frontend npm run test:purchase-flow
 ```
 
 O teste de compra requer ao menos um produto ativo com estoque de duas unidades ou mais. O e-mail de checkout aparece no Mailpit; nenhum SMTP real é usado neste perfil.

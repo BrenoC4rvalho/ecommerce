@@ -9,9 +9,12 @@ FROM dependencies AS development
 
 COPY . .
 
-EXPOSE 3000
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3001
 
-CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0", "--webpack"]
+EXPOSE 3001
+
+CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0", "--port", "3001", "--webpack"]
 
 
 FROM dependencies AS build
@@ -25,7 +28,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
-ENV PORT=3000
+ENV PORT=3001
 
 COPY --from=build --chown=node:node /app/public ./public
 COPY --from=build --chown=node:node /app/.next/standalone ./
@@ -33,6 +36,6 @@ COPY --from=build --chown=node:node /app/.next/static ./.next/static
 
 USER node
 
-EXPOSE 3000
+EXPOSE 3001
 
 CMD ["node", "server.js"]

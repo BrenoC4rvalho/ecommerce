@@ -1,4 +1,4 @@
-const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:3000";
+const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:3001";
 
 async function expectOk(path, expectedText) {
   const response = await fetch(new URL(path, frontendUrl));
