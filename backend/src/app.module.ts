@@ -8,9 +8,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppDataSource } from './database/data-source';
 import { MailModule } from './modules/mail/mail.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { DevelopmentSeedModule } from './modules/development-seed/development-seed.module';
 
 @Module({
-   imports: [
+  imports: [
     TypeOrmModule.forRoot({
       ...AppDataSource.options,
       autoLoadEntities: true,
@@ -24,6 +25,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     CartsModule,
     OrdersModule,
     MailModule,
+    DevelopmentSeedModule,
   ],
   controllers: [AppController],
   providers: [AppService],
