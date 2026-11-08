@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import nodemailer, { Transporter } from 'nodemailer';
-import { MailConfiguration, MailConfigurationService } from './mail-configuration.service';
+import nodemailer, { SentMessageInfo, Transporter } from 'nodemailer';
+import {
+  MailConfiguration,
+  MailConfigurationService,
+} from './mail-configuration.service';
 
 export type OutgoingMail = {
   recipient: string;
@@ -8,6 +11,11 @@ export type OutgoingMail = {
   text: string;
   html: string;
 };
+
+export type MailConnectionInfo = Pick<
+  MailConfiguration,
+  'host' | 'port' | 'secure' | 'provider'
+>;
 
 @Injectable()
 export class MailTransportService {
@@ -21,7 +29,9 @@ export class MailTransportService {
       host: config.host,
       port: config.port,
       secure: config.secure,
-      ...(config.provider === 'smtp' ? { auth: { user: config.user!, pass: config.password! } } : {}),
+      ...(config.provider === 'smtp'
+        ? { auth: { user: config.user!, pass: config.password! } }
+        : {}),
       connectionTimeout: config.timeoutMs,
       greetingTimeout: config.timeoutMs,
       socketTimeout: config.timeoutMs,
@@ -29,8 +39,17 @@ export class MailTransportService {
     });
   }
 
-  async send(message: OutgoingMail): Promise<void> {
-    await this.transporter.sendMail({
+  async verify(): Promise<void> {
+    await this.transporter.verify();
+  }
+
+  connectionInfo(): MailConnectionInfo {
+    const { host, port, secure, provider } = this.configuration;
+    return { host, port, secure, provider };
+  }
+
+  async send(message: OutgoingMail): Promise<SentMessageInfo> {
+    return this.transporter.sendMail({
       from: this.configuration.from,
       to: message.recipient,
       subject: message.subject,
