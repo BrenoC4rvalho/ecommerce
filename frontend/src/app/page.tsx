@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Container } from '@/components/layout/container';
 import { Header } from '@/components/layout/header';
@@ -16,6 +16,7 @@ import { ProductPagination } from '@/features/products/components/product-pagina
 import { useProducts } from '@/features/products/hooks/use-products';
 import type { Product } from '@/features/products/types';
 import { useToast } from '@/hooks/use-toast';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { getFriendlyError } from '@/lib/error-messages';
 
 const PAGE_SIZE = 20;
@@ -25,10 +26,12 @@ export default function Home() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const search = useDebouncedValue(searchInput.trim(), 400);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>('cart');
   const [confirmation, setConfirmation] = useState<Order>();
-  const products = useProducts(page, PAGE_SIZE);
+  const products = useProducts(page, PAGE_SIZE, search);
   const cart = useCart();
   const checkout = useCheckout();
   const productsError = getFriendlyError(
@@ -36,6 +39,10 @@ export default function Home() {
     'Não foi possível carregar os produtos.',
     'products',
   );
+  useEffect(() => setPage(1), [search]);
+  useEffect(() => {
+    if (products.isError) toast.error(productsError);
+  }, [products.isError, productsError, toast]);
   const pendingItemId = cart.update.isPending
     ? cart.update.variables.itemId
     : cart.remove.isPending
@@ -103,7 +110,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header itemCount={cart.itemCount} onOpenCart={openCart} />
+      <Header itemCount={cart.itemCount} onClearSearch={() => setSearchInput('')} onOpenCart={openCart} onSearchChange={setSearchInput} search={searchInput} />
       <main>
         <Container>
           <section className="py-8 sm:py-10">
@@ -113,6 +120,7 @@ export default function Home() {
               </h1>
             </div>
             {products.isPending ? <ProductGridLoading /> : null}
+            {products.isFetching && !products.isPending ? <p className="mb-4 text-sm text-zinc-500">Buscando produtos…</p> : null}
             {products.isError ? (
               <p className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
                 {productsError}
@@ -120,7 +128,7 @@ export default function Home() {
             ) : null}
             {products.data?.data.length === 0 ? (
               <p className="rounded-lg border border-zinc-200 p-6 text-sm text-zinc-600">
-                Nenhum produto disponível no momento.
+                {search ? 'Nenhum produto encontrado para a sua busca.' : 'Nenhum produto disponível no momento.'}
               </p>
             ) : null}
             {products.data?.data.length ? (

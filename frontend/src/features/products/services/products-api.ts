@@ -1,11 +1,13 @@
 import type { ProductsPage } from '@/features/products/types';
 import { api } from '@/lib/api';
 
-export function getProducts(page: number, limit = 20) {
+type GetProductsOptions = { page: number; limit?: number; search?: string; signal?: AbortSignal };
+
+export function getProducts({ page, limit = 20, search, signal }: GetProductsOptions) {
   const params = new URLSearchParams({
     page: String(page),
     limit: String(limit),
-    isActive: 'true',
   });
-  return api.get<ProductsPage>(`/api/products?${params.toString()}`);
+  if (search) params.set('search', search);
+  return api.get<ProductsPage>(`/api/products?${params.toString()}`, { signal });
 }
