@@ -1,66 +1,73 @@
 # E-commerce
 
-Frontend Next.js e API NestJS para o E-commerce. Todo o fluxo usa Docker; Node.js, npm e Next.js não precisam estar instalados na máquina host.
+Aplicação Next.js com API NestJS, PostgreSQL e envio de e-mails. Toda a execução ocorre em containers; Node.js e npm não são necessários na máquina host.
 
-## Stack
+## Estrutura Docker
 
-- Frontend: Next.js (App Router), React, TypeScript strict, Tailwind CSS 4, TanStack Query, React Hook Form e Zod.
-- Backend: NestJS, PostgreSQL e Mailpit.
-- Infraestrutura: Docker Compose e imagens Node.js 24.
+- `compose.yaml`: serviços, rede e volume compartilhados.
+- `compose.dev.yaml`: hot reload, bind mounts e Mailpit.
+- `compose.prod.yaml`: imagens compiladas, SMTP real e exposição mínima.
+- `backend/Dockerfile` e `frontend/Dockerfile`: imagens multi-stage com targets `development`, `build` e `production`.
+
+O volume nomeado `ecommerce_postgres_data` é preservado entre reinicializações. Não use `docker compose down -v` em uma instalação que contenha dados a manter.
 
 ## Desenvolvimento
 
-Execute na raiz do repositório:
+Copie as variáveis locais de exemplo e inicie a stack:
 
 ```bash
-docker compose up --build
+cp .env.example .env
+docker compose -f compose.yaml -f compose.dev.yaml up --build
 ```
-
-Endereços disponíveis:
 
 - Frontend: http://localhost:3001
 - API e Swagger: http://localhost:3000 e http://localhost:3000/api/docs
 - Mailpit: http://localhost:8025
 - PostgreSQL: `127.0.0.1:5432`
 
-O código do frontend é montado no container de desenvolvimento. O volume nomeado `frontend_node_modules` mantém as dependências do container e impede que o bind mount as substitua. Alterações em `frontend/src` usam hot reload.
+O serviço `migrate` executa as migrations versionadas depois que o banco fica saudável e antes da API iniciar. Os volumes `backend_node_modules` e `frontend_node_modules` evitam que bind mounts ocultem dependências instaladas na imagem. Alterações nos dois projetos usam hot reload.
 
-## Produção local
-
-Para construir e executar a imagem standalone do Next.js:
+Para validar a configuração:
 
 ```bash
-docker compose -f compose.yaml -f compose.production.yaml up --build
+docker compose -f compose.yaml -f compose.dev.yaml config
+docker compose -f compose.yaml -f compose.dev.yaml exec frontend npm run test:smoke
+docker compose -f compose.yaml -f compose.dev.yaml exec -e FRONTEND_URL=http://localhost:3000 frontend npm run test:purchase-flow
 ```
 
-O modo de produção usa `NODE_ENV=production`. O cookie de carrinho passa a ser `Secure`, portanto uma implantação real deve ser servida por HTTPS.
+O teste de compra requer ao menos um produto ativo com estoque de duas unidades ou mais. O e-mail de checkout aparece no Mailpit; nenhum SMTP real é usado neste perfil.
 
-## Dependências do frontend
+## Produção
 
-Instale dependências sem npm local:
+Crie um arquivo externo e não versionado, por exemplo `/etc/ecommerce/production.env`, com valores reais:
+
+```dotenv
+POSTGRES_USER=ecommerce
+POSTGRES_PASSWORD=troque-por-um-segredo-forte
+POSTGRES_DB=ecommerce
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=usuario
+SMTP_PASSWORD=segredo
+MAIL_FROM="E-commerce <no-reply@example.com>"
+```
+
+Valide e inicie:
 
 ```bash
-docker compose run --rm frontend npm install nome-do-pacote
+docker compose --env-file /etc/ecommerce/production.env -f compose.yaml -f compose.prod.yaml config
+docker compose --env-file /etc/ecommerce/production.env -f compose.yaml -f compose.prod.yaml up -d --build
 ```
 
-Para dependências de desenvolvimento, use `npm install --save-dev nome-do-pacote` no mesmo comando. Depois, reconstrua o serviço com `docker compose up --build`.
+Produção não inicia Mailpit e não publica PostgreSQL ou a API. Apenas o frontend é associado a `127.0.0.1:3001`; um proxy reverso externo deve encaminhá-lo por HTTPS. O navegador usa `/api`, que o Next encaminha internamente para a API, preservando o cookie HttpOnly no mesmo domínio.
 
-## API e sessão
+Docker Compose não fornece HTTPS, certificados, firewall, domínio, backup ou rotação de segredos. Configure esses controles no ambiente de implantação. Como o cookie de carrinho é `Secure` em produção, o fluxo completo de carrinho e checkout requer acesso HTTPS real.
 
-O navegador chama a API por URLs relativas iniciadas em `/api`, por exemplo `GET /api/products`. O rewrite do Next remove o prefixo e encaminha a chamada internamente para `http://backend:3000`; assim não há dependência de `localhost` entre containers.
+## Migrations e e-mail
 
-O backend cria o cookie HttpOnly `cart_session_id`. O cliente HTTP usa `credentials: "include"`, mas nunca lê nem armazena o valor em `localStorage`. Em desenvolvimento o backend usa cookie não-`Secure` para funcionar em `http://localhost`; em produção ele exige HTTPS.
+As migrations nunca são executadas no build da imagem nem no boot da API. O serviço one-shot `migrate` aplica migrations compiladas em produção e migrations TypeScript em desenvolvimento; a API depende da sua conclusão bem-sucedida.
 
-## Estrutura do frontend
+O perfil de produção fixa `MAIL_PROVIDER=smtp` e exige host, credenciais e remetente. Não existe fallback silencioso para Mailpit. As variáveis SMTP são runtime-only e não devem usar o prefixo `NEXT_PUBLIC_`.
 
-```text
-frontend/src/
-├── app/          # App Router, layout e página inicial
-├── components/   # componentes de UI e layout
-├── features/     # produtos, carrinho e checkout
-├── hooks/
-├── lib/          # cliente HTTP e QueryClient
-├── providers/    # TanStack Query
-├── schemas/      # schemas Zod
-└── types/
-```
+Nenhum segredo é usado no build das imagens. `BACKEND_INTERNAL_URL` também é uma variável runtime do servidor Next, com valor interno `http://backend:3000`; o browser nunca a recebe e sempre chama o caminho relativo `/api`.
