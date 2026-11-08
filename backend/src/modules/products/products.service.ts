@@ -13,13 +13,23 @@ export class ProductsService {
     private readonly productsRepository: Repository<Product>,
   ) {}
 
-  async findAll({ page = 1, limit = 20, isActive }: ListProductsQueryDto) {
-    const [data, total] = await this.productsRepository.findAndCount({
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-      ...(isActive === undefined ? {} : { where: { isActive } }),
-    });
+  async findAll({ page = 1, limit = 20, search }: ListProductsQueryDto) {
+    const query = this.productsRepository
+      .createQueryBuilder('product')
+      .where('product.is_active = :isActive', { isActive: true })
+      .andWhere('product.stock > :minimumStock', { minimumStock: 0 });
+
+    if (search) {
+      query.andWhere('(product.name ILIKE :search OR product.description ILIKE :search)', {
+        search: `%${search}%`,
+      });
+    }
+
+    const [data, total] = await query
+      .orderBy('product.created_at', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
 
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }

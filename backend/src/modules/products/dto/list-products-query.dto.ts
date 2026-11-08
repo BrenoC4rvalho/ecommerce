@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
 export class ListProductsQueryDto {
   @IsOptional()
@@ -16,11 +16,12 @@ export class ListProductsQueryDto {
   limit = 20;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(150)
   @Transform(({ value }) => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
+    if (typeof value !== 'string') return value;
+    const search = value.trim().replace(/\s+/g, ' ');
+    return search || undefined;
   })
-  @IsBoolean()
-  isActive?: boolean;
+  search?: string;
 }
