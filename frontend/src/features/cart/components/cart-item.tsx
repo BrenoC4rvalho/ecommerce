@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { IconButton } from '@/components/ui/icon-button';
 import type { CartItem as CartItemModel } from '@/features/cart/types';
 import { formatCurrency } from '@/lib/formatters';
+import { getProductImage } from '@/lib/product-image';
 
 type CartItemProps = {
   item: CartItemModel;
@@ -15,11 +16,11 @@ export function CartItem({ item, isPending, onQuantityChange, onRemove }: CartIt
     <li className="flex gap-3 border-b border-zinc-200 py-4">
       <div className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
         <Image
-          alt={`Imagem padrão de ${item.productName}`}
-          className="object-cover"
+          alt={`Imagem de ${item.productName}`}
+          className="object-contain"
           fill
           sizes="80px"
-          src="/images/product-placeholder.svg"
+          src={getProductImage(item.productId)}
         />
       </div>
       <div className="min-w-0 flex-1">

@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import type { Product } from '@/features/products/types';
 import { formatCurrency } from '@/lib/formatters';
+import { getProductImage } from '@/lib/product-image';
 
 type ProductCardProps = {
   product: Product;
@@ -15,11 +16,11 @@ export function ProductCard({ product, isAdding = false, onAdd }: ProductCardPro
     <article className="min-w-0">
       <div className="relative aspect-square overflow-hidden rounded-xl bg-zinc-100">
         <Image
-          alt={`Imagem padrão de ${product.name}`}
-          className="object-cover"
+          alt={`Imagem de ${product.name}`}
+          className="object-contain"
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 360px"
-          src="/images/product-placeholder.svg"
+          src={getProductImage(product.id)}
         />
       </div>
       <div className="pt-3">

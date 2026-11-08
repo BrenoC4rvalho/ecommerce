@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
 import { Loading } from '@/components/ui/loading';
@@ -23,7 +23,9 @@ type CartDrawerProps = {
   onCheckout: () => void;
 };
 
-function focusFirstElement(container: HTMLDivElement | null) {
+const DRAWER_TRANSITION_MS = 300;
+
+function focusFirstElement(container: HTMLElement | null) {
   container
     ?.querySelector<HTMLElement>(
       "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])",
@@ -45,30 +47,100 @@ export function CartDrawer({
   onRemove,
   onCheckout,
 }: CartDrawerProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const [isMounted, setIsMounted] = useState(isOpen);
+  const [isVisible, setIsVisible] = useState(false);
   const itemCount = cart?.items.reduce((total, item) => total + item.quantity, 0) ?? 0;
+
+  useEffect(() => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = undefined;
+    }
+
+    if (isOpen) {
+      previousFocusRef.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      let visibilityFrame: number | undefined;
+      const mountFrame = window.requestAnimationFrame(() => {
+        setIsMounted(true);
+        visibilityFrame = window.requestAnimationFrame(() => {
+          setIsVisible(true);
+          focusFirstElement(panelRef.current);
+        });
+      });
+
+      return () => {
+        window.cancelAnimationFrame(mountFrame);
+        if (visibilityFrame) window.cancelAnimationFrame(visibilityFrame);
+      };
+    }
+
+    if (previousFocusRef.current && document.contains(previousFocusRef.current)) {
+      previousFocusRef.current.focus();
+    }
+
+    const visibilityFrame = window.requestAnimationFrame(() => setIsVisible(false));
+    const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 0
+      : DRAWER_TRANSITION_MS;
+
+    closeTimeoutRef.current = setTimeout(() => {
+      setIsMounted(false);
+      closeTimeoutRef.current = undefined;
+    }, duration);
+
+    return () => {
+      window.cancelAnimationFrame(visibilityFrame);
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = undefined;
+      }
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
-    focusFirstElement(panelRef.current);
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
+
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [isOpen, onClose]);
-  if (!isOpen) return null;
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
+  if (!isMounted) return null;
+
   return (
-    <div className="fixed inset-0 z-50">
+    <div
+      aria-hidden={!isOpen}
+      className={`fixed inset-0 z-50 ${isOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
+      inert={!isOpen}
+    >
       <button
         aria-label="Fechar carrinho"
-        className="absolute inset-0 cursor-default bg-black/40"
+        className={`absolute inset-0 cursor-default bg-black/40 transition-opacity duration-300 ease-out motion-reduce:transition-none ${isVisible ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
         type="button"
       />
       <aside
         aria-label={title}
         aria-modal="true"
-        className="absolute inset-y-0 right-0 flex w-[min(100%-1rem,440px)] flex-col bg-white p-4 shadow-xl sm:p-6"
+        className={`absolute inset-y-0 right-0 flex w-[min(100%-1rem,440px)] flex-col bg-white p-4 shadow-xl transition-transform duration-300 ease-out motion-reduce:transition-none sm:p-6 ${isVisible ? 'translate-x-0' : 'translate-x-full'}`}
         ref={panelRef}
         role="dialog"
         tabIndex={-1}
