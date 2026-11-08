@@ -93,7 +93,7 @@ Revise o `.env` e ajuste as variáveis necessárias. Para começar, os valores d
 Suba os containers com o Compose de desenvolvimento:
 
 ```bash
-docker compose -f compose.yaml -f compose.dev.yaml up -d --build
+docker compose -f compose.yaml -f compose.dev.yaml up -d 
 ```
 
 Aguarde o PostgreSQL ficar saudável. Em seguida, o serviço `migrate` executa as migrations e o backend é iniciado; o frontend só fica disponível depois que a API passar no healthcheck.
