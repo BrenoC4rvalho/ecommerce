@@ -54,6 +54,8 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:-ecommerce_dev}
       DB_NAME: ${POSTGRES_DB:-ecommerce}
       TYPEORM_MIGRATIONS_RUN: "false"
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3001}
+      CORS_CREDENTIALS: ${CORS_CREDENTIALS:-true}
     depends_on:
       migrate:
         condition: service_completed_successfully

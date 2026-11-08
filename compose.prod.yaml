@@ -32,6 +32,8 @@ services:
       MAIL_SMTP_TIMEOUT_MS: ${MAIL_SMTP_TIMEOUT_MS:-10000}
       MAIL_OUTBOX_BATCH_SIZE: ${MAIL_OUTBOX_BATCH_SIZE:-20}
       MAIL_PROCESSING_TIMEOUT_SECONDS: ${MAIL_PROCESSING_TIMEOUT_SECONDS:-120}
+      CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS in the production environment file}
+      CORS_CREDENTIALS: ${CORS_CREDENTIALS:?set CORS_CREDENTIALS in the production environment file}
 
   frontend:
     build:
