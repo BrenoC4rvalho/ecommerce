@@ -2,6 +2,71 @@
 
 Aplicação Next.js com API NestJS, PostgreSQL e envio de e-mails. Toda a execução ocorre em containers; Node.js e npm não são necessários na máquina host.
 
+## Pré-requisitos — Instalação do Docker
+
+O projeto utiliza Docker e Docker Compose para executar o frontend, o backend, o PostgreSQL, as migrations e o Mailpit. Não é necessário instalar Node.js, npm ou PostgreSQL na máquina local: essas dependências são executadas dentro dos containers.
+
+### Links oficiais
+
+- [Download geral do Docker](https://www.docker.com/get-started/)
+- [Instalação no Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
+- [Instalação no macOS](https://docs.docker.com/desktop/setup/install/mac-install/)
+- [Docker Engine no Linux](https://docs.docker.com/engine/install/)
+- [Docker Desktop no Linux](https://docs.docker.com/desktop/setup/install/linux/)
+
+### Windows
+
+1. Baixe o Docker Desktop pela [documentação oficial do Windows](https://docs.docker.com/desktop/setup/install/windows-install/).
+2. Execute o instalador e siga as etapas apresentadas.
+3. Utilize o WSL 2 como backend, que é a opção recomendada para o desenvolvimento no Windows.
+4. Reinicie o computador, se o instalador solicitar.
+5. Abra o Docker Desktop.
+6. Aguarde até que o Docker esteja disponível antes de executar os comandos do projeto.
+
+### macOS
+
+1. Identifique se o Mac utiliza processador Apple Silicon ou Intel.
+2. Baixe a versão correspondente na [documentação oficial do macOS](https://docs.docker.com/desktop/setup/install/mac-install/).
+3. Abra o arquivo `.dmg` baixado.
+4. Arraste o Docker para a pasta `Applications`.
+5. Abra o Docker Desktop.
+6. Aguarde a inicialização completa antes de executar os comandos do projeto.
+
+### Linux
+
+#### Opção A — Docker Engine (recomendada)
+
+O Docker Engine é suficiente para executar este projeto e não exige interface gráfica. Acesse a [documentação oficial de instalação do Docker Engine](https://docs.docker.com/engine/install/), selecione sua distribuição e siga as instruções específicas para ela.
+
+As distribuições documentadas incluem, entre outras:
+
+- Ubuntu;
+- Debian;
+- Fedora;
+- CentOS.
+
+Instale também o [Docker Compose Plugin para Linux](https://docs.docker.com/compose/install/linux/) conforme a seção de instalação da sua distribuição. Ele fornece o comando moderno `docker compose`, utilizado neste README. Não misture comandos de instalação de uma distribuição com outra; use sempre as instruções oficiais correspondentes ao seu sistema.
+
+#### Opção B — Docker Desktop
+
+Se preferir uma interface gráfica para gerenciar containers, imagens e volumes, instale o [Docker Desktop para Linux](https://docs.docker.com/desktop/setup/install/linux/). Depois da instalação, abra o Docker Desktop e aguarde o serviço ficar disponível.
+
+### Verificar a instalação
+
+Execute os comandos abaixo em um terminal:
+
+```bash
+docker --version
+docker compose version
+docker run hello-world
+```
+
+- `docker --version` confirma que o Docker CLI está instalado.
+- `docker compose version` confirma que o Docker Compose Plugin está disponível.
+- `docker run hello-world` baixa e executa uma imagem de teste, confirmando que o daemon do Docker consegue criar containers.
+
+Se algum comando falhar, confirme que o Docker Engine ou o Docker Desktop está instalado, iniciado e disponível para o seu usuário. No Linux, também verifique as permissões do usuário para acessar o daemon.
+
 ## Estrutura Docker
 
 - `compose.yaml`: serviços, rede e volume compartilhados.
@@ -11,19 +76,46 @@ Aplicação Next.js com API NestJS, PostgreSQL e envio de e-mails. Toda a execu�
 
 O volume nomeado `ecommerce_postgres_data` é preservado entre reinicializações. Não use `docker compose down -v` em uma instalação que contenha dados a manter.
 
-## Desenvolvimento
+## Como executar o projeto
 
-Copie as variáveis locais de exemplo e inicie a stack:
+### Ambiente de desenvolvimento
+
+Clone o repositório, entre na pasta do projeto e copie o arquivo de variáveis de exemplo:
 
 ```bash
+git clone https://github.com/BrenoC4rvalho/ecommerce.git
+cd ecommerce
 cp .env.example .env
-docker compose -f compose.yaml -f compose.dev.yaml up --build
 ```
 
+Revise o `.env` e ajuste as variáveis necessárias. Para começar, os valores de desenvolvimento fornecidos no `.env.example` são suficientes: eles configuram o PostgreSQL local, o CORS e o Mailpit. Não coloque API Keys, senhas reais ou outras credenciais no Git.
+
+Suba os containers com o Compose de desenvolvimento:
+
+```bash
+docker compose -f compose.yaml -f compose.dev.yaml up -d --build
+```
+
+Aguarde o PostgreSQL ficar saudável. Em seguida, o serviço `migrate` executa as migrations e o backend é iniciado; o frontend só fica disponível depois que a API passar no healthcheck.
+
 - Frontend: http://localhost:3001
-- API e Swagger: http://localhost:3000 e http://localhost:3000/api/docs
+- Backend/API: http://localhost:3000
+- Swagger: http://localhost:3000/api/docs
 - Mailpit: http://localhost:8025
 - PostgreSQL: `127.0.0.1:5432`
+
+Para acompanhar os logs de todos os serviços ou de um serviço específico:
+
+```bash
+docker compose -f compose.yaml -f compose.dev.yaml logs -f
+docker compose -f compose.yaml -f compose.dev.yaml logs -f backend
+```
+
+Para parar os containers sem remover o volume persistente do PostgreSQL:
+
+```bash
+docker compose -f compose.yaml -f compose.dev.yaml stop
+```
 
 O serviço `migrate` executa as migrations versionadas depois que o banco fica saudável e antes da API iniciar. Os volumes `backend_node_modules` e `frontend_node_modules` evitam que bind mounts ocultem dependências instaladas na imagem. Alterações nos dois projetos usam hot reload.
 
@@ -43,7 +135,7 @@ O seed:
 
 Não é necessário cadastrar produtos manualmente para começar a testar o E-commerce. Basta iniciar o ambiente de desenvolvimento seguindo as instruções de Docker acima.
 
-Para validar a configuração:
+Para validar a configuração e os fluxos principais depois que a stack estiver em execução:
 
 ```bash
 docker compose -f compose.yaml -f compose.dev.yaml config
