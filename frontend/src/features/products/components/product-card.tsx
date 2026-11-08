@@ -14,10 +14,10 @@ export function ProductCard({ product, isAdding = false, onAdd }: ProductCardPro
   const isUnavailable = product.stock === 0;
   return (
     <article className="min-w-0">
-      <div className="relative aspect-square overflow-hidden rounded-xl bg-zinc-100">
+      <div className="relative aspect-square overflow-hidden rounded-xl">
         <Image
           alt={`Imagem de ${product.name}`}
-          className="object-contain"
+          className="h-full w-full object-contain"
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 360px"
           src={getProductImage(product.id)}
