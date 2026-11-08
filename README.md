@@ -102,7 +102,7 @@ SMTP_PORT=465
 SMTP_SECURE=true
 SMTP_USER=resend
 SMTP_PASSWORD=re_SUA_API_KEY
-MAIL_FROM="Sua Loja <contato@dominio-verificado.com>"
+MAIL_FROM="Resend <onboarding@resend.dev>"
 ```
 
 `SMTP_PASSWORD` recebe a API Key da Resend e nunca deve ser versionada no Git. Reinicie somente o backend para que as novas variáveis sejam carregadas:
