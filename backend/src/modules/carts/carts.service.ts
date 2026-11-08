@@ -8,6 +8,7 @@ import { AddCartItemDto } from './dto/add-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { CartItem } from './entities/cart-item.entity';
 import { Cart, CartStatus } from './entities/cart.entity';
+import { isCartExpired } from './cart-expiration';
 
 @Injectable()
 export class CartsService {
@@ -22,7 +23,8 @@ export class CartsService {
         sessionId,
         status: CartStatus.ACTIVE,
       });
-      if (activeCart) return activeCart;
+      if (activeCart && !isCartExpired(activeCart.updatedAt)) return activeCart;
+      if (activeCart) await this.cartsRepository.delete(activeCart.id);
     }
 
     return this.cartsRepository.save(
@@ -58,7 +60,7 @@ export class CartsService {
 
   async addItem(id: string, sessionId: string, dto: AddCartItemDto) {
     await this.dataSource.transaction(async (manager) => {
-      await this.requireActiveCart(manager, id, sessionId);
+      const cart = await this.requireActiveCart(manager, id, sessionId);
       const product = await manager.findOne(Product, {
         where: { id: dto.productId },
         lock: { mode: 'pessimistic_read' },
@@ -74,6 +76,7 @@ export class CartsService {
       if (item) {
         item.quantity = requestedQuantity;
         await manager.save(item);
+        await manager.save(cart);
         return;
       }
 
@@ -82,13 +85,14 @@ export class CartsService {
         productId: dto.productId,
         quantity: dto.quantity,
       }));
+      await manager.save(cart);
     });
     return this.findOne(id, sessionId);
   }
 
   async updateItem(id: string, itemId: string, sessionId: string, dto: UpdateCartItemDto) {
     await this.dataSource.transaction(async (manager) => {
-      await this.requireActiveCart(manager, id, sessionId);
+      const cart = await this.requireActiveCart(manager, id, sessionId);
       const item = await manager.findOne(CartItem, { where: { id: itemId, cartId: id } });
       if (!item) throw new NotFoundException('Cart item not found');
 
@@ -101,15 +105,17 @@ export class CartsService {
       this.ensureQuantityWithinStock(product, dto.quantity);
       item.quantity = dto.quantity;
       await manager.save(item);
+      await manager.save(cart);
     });
     return this.findOne(id, sessionId);
   }
 
   async removeItem(id: string, itemId: string, sessionId: string): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
-      await this.requireActiveCart(manager, id, sessionId);
+      const cart = await this.requireActiveCart(manager, id, sessionId);
       const result = await manager.delete(CartItem, { id: itemId, cartId: id });
       if (!result.affected) throw new NotFoundException('Cart item not found');
+      await manager.save(cart);
     });
   }
 
@@ -122,6 +128,7 @@ export class CartsService {
     if (cart.status !== CartStatus.ACTIVE) {
       throw new ConflictException('Cart has already been checked out');
     }
+    if (isCartExpired(cart.updatedAt)) throw new NotFoundException('Cart not found');
     return cart;
   }
 

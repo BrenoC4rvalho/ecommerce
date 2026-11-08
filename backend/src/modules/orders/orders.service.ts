@@ -9,6 +9,7 @@ import { DataSource, EntityManager } from 'typeorm';
 import { sumMoney, multiplyMoney } from '../../common/money';
 import { CartItem } from '../carts/entities/cart-item.entity';
 import { Cart, CartStatus } from '../carts/entities/cart.entity';
+import { isCartExpired } from '../carts/cart-expiration';
 import { Product } from '../products/entities/product.entity';
 import { CheckoutDto } from './dto/checkout.dto';
 import { Order, OrderStatus } from './entities/order.entity';
@@ -49,6 +50,7 @@ export class OrdersService {
     if (cart.status !== CartStatus.ACTIVE) {
       throw new ConflictException('Cart has already been checked out');
     }
+    if (isCartExpired(cart.updatedAt)) throw new NotFoundException('Cart not found');
 
     const items = await manager.find(CartItem, { where: { cartId: cart.id } });
     if (items.length === 0) throw new UnprocessableEntityException('Cart is empty');
