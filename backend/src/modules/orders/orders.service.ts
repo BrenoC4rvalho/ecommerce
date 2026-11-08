@@ -81,12 +81,17 @@ export class OrdersService {
     }
 
     const totalAmount = sumMoney(lines.map((line) => line.subtotal));
+    const [{ sequence, year }] = await manager.query(
+      "SELECT nextval('orders_order_number_seq')::text AS sequence, to_char(CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo', 'YYYY') AS year",
+    ) as Array<{ sequence: string; year: string }>;
+    const orderNumber = `PED-${year}-${sequence.padStart(6, '0')}`;
     const order = await manager.save(
       manager.create(Order, {
         cartId: cart.id,
         customerEmail: dto.customerEmail,
         status: OrderStatus.CONFIRMED,
         totalAmount,
+        orderNumber,
       }),
     );
 

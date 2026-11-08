@@ -5,6 +5,7 @@ describe('OrderConfirmationTemplateService', () => {
   it('renders escaped historical order-item data in text and HTML', () => {
     const order = {
       id: 'order-id',
+      orderNumber: 'PED-2026-000123',
       createdAt: new Date('2026-11-08T02:44:03.833Z'),
       totalAmount: '12.50',
       status: OrderStatus.CONFIRMED,
@@ -13,7 +14,8 @@ describe('OrderConfirmationTemplateService', () => {
 
     const rendered = new OrderConfirmationTemplateService().render(order);
 
-    expect(rendered.subject).toContain('order-id');
+    expect(rendered.subject).toContain('PED-2026-000123');
+    expect(rendered.html).not.toContain('order-id');
     expect(rendered.text).toContain('<Keyboard>: 2 x R$');
     expect(rendered.text).toContain('7 de novembro de 2026 às 23:44');
     expect(rendered.html).toContain('&lt;Keyboard&gt;');

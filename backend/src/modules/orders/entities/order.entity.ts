@@ -24,6 +24,9 @@ export class Order {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ name: 'order_number', type: 'varchar', length: 32, unique: true, update: false })
+  orderNumber!: string;
+
   @Column({ name: 'cart_id', type: 'uuid', unique: true })
   cartId!: string;
 
