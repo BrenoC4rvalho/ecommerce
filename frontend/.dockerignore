@@ -1,5 +1,8 @@
 node_modules
 .next
+.turbo
+.env
+.env.*
 npm-debug.log*
 .git
 .env

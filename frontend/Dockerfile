@@ -1,16 +1,25 @@
-FROM node:24-alpine AS dependencies
+FROM node:24-bookworm-slim AS dependencies
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
-FROM dependencies AS builder
+FROM dependencies AS development
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0", "--webpack"]
+
+
+FROM dependencies AS build
 
 COPY . .
 RUN npm run build
 
-FROM node:24-alpine AS runtime
+FROM node:24-bookworm-slim AS production
 
 WORKDIR /app
 
@@ -18,13 +27,11 @@ ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 
-RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+COPY --from=build --chown=node:node /app/public ./public
+COPY --from=build --chown=node:node /app/.next/standalone ./
+COPY --from=build --chown=node:node /app/.next/static ./.next/static
 
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
+USER node
 
 EXPOSE 3000
 
