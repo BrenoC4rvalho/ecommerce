@@ -1,4 +1,4 @@
-const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:3001";
+const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3001';
 
 async function expectOk(path, expectedText) {
   const response = await fetch(new URL(path, frontendUrl));
@@ -9,7 +9,7 @@ async function expectOk(path, expectedText) {
   }
 }
 
-await expectOk("/", "E-commerce");
-await expectOk("/api", "Hello World!");
+await expectOk('/', 'E-commerce');
+await expectOk('/api', 'Hello World!');
 
-console.log("Frontend and API proxy smoke test passed.");
+console.log('Frontend and API proxy smoke test passed.');
