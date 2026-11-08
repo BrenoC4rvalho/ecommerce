@@ -15,32 +15,27 @@ import { ProductGrid, ProductGridLoading } from '@/features/products/components/
 import { ProductPagination } from '@/features/products/components/product-pagination';
 import { useProducts } from '@/features/products/hooks/use-products';
 import type { Product } from '@/features/products/types';
-import { ApiError } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
+import { getFriendlyError } from '@/lib/error-messages';
 
 const PAGE_SIZE = 20;
 type DrawerMode = 'cart' | 'checkout' | 'confirmation';
 
-function getFriendlyError(error: unknown, fallback: string) {
-  if (!(error instanceof ApiError)) return fallback;
-  if (error.status === 409) return 'Estoque insuficiente. A quantidade disponível foi alterada.';
-  if (error.status === 422) return 'Seu carrinho está vazio ou possui um produto indisponível.';
-  if (error.status === 404) return 'Este recurso não está mais disponível.';
-  return error.message;
-}
-
 export default function Home() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [page, setPage] = useState(1);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>('cart');
   const [confirmation, setConfirmation] = useState<Order>();
-  const [feedback, setFeedback] = useState<string>();
   const products = useProducts(page, PAGE_SIZE);
   const cart = useCart();
   const checkout = useCheckout();
-  const productsError = getFriendlyError(products.error, 'Não foi possível carregar os produtos.');
-  const cartError = getFriendlyError(cart.error, 'Não foi possível atualizar o carrinho.');
-  const checkoutError = getFriendlyError(checkout.error, 'Não foi possível finalizar a compra.');
+  const productsError = getFriendlyError(
+    products.error,
+    'Não foi possível carregar os produtos.',
+    'products',
+  );
   const pendingItemId = cart.update.isPending
     ? cart.update.variables.itemId
     : cart.remove.isPending
@@ -54,13 +49,14 @@ export default function Home() {
   const openCart = useCallback(() => {
     setDrawerMode('cart');
     setIsCartOpen(true);
-    void cart.ensureCart().catch(() => undefined);
-  }, [cart]);
+    void cart.ensureCart().catch((error) => {
+      toast.error(getFriendlyError(error, 'Não foi possível abrir o carrinho.', 'cart'));
+    });
+  }, [cart, toast]);
   const addProduct = useCallback(
     (product: Product) => {
       cart.add.mutate(product.id, {
         onSuccess: () => {
-          setFeedback('Produto adicionado ao carrinho.');
           setIsCartOpen(true);
         },
       });
@@ -69,7 +65,10 @@ export default function Home() {
   );
   const submitCheckout = useCallback(
     (values: CheckoutValues) => {
-      if (!cart.cartId) return;
+      if (!cart.cartId) {
+        toast.info('Seu carrinho está vazio.');
+        return;
+      }
       checkout.mutate(
         { cartId: cart.cartId, customerEmail: values.customerEmail },
         {
@@ -82,13 +81,12 @@ export default function Home() {
         },
       );
     },
-    [cart, checkout, queryClient],
+    [cart, checkout, queryClient, toast],
   );
 
   const drawerContent =
     drawerMode === 'checkout' ? (
       <CheckoutForm
-        errorMessage={checkout.error ? checkoutError : undefined}
         isSubmitting={checkout.isPending}
         onBack={() => setDrawerMode('cart')}
         onSubmit={submitCheckout}
@@ -114,14 +112,6 @@ export default function Home() {
                 Produtos
               </h1>
             </div>
-            {feedback ? (
-              <p
-                aria-live="polite"
-                className="mb-5 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700"
-              >
-                {feedback}
-              </p>
-            ) : null}
             {products.isPending ? <ProductGridLoading /> : null}
             {products.isError ? (
               <p className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
@@ -152,7 +142,6 @@ export default function Home() {
       </main>
       <CartDrawer
         cart={cart.cart}
-        errorMessage={cart.error ? cartError : undefined}
         isLoading={cart.isLoading}
         isOpen={isCartOpen}
         onCheckout={() => setDrawerMode('checkout')}

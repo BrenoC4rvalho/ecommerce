@@ -8,12 +8,11 @@ import { checkoutSchema, type CheckoutValues } from '@/features/checkout/schemas
 
 type CheckoutFormProps = {
   isSubmitting: boolean;
-  errorMessage?: string;
   onBack: () => void;
   onSubmit: (values: CheckoutValues) => void;
 };
 
-export function CheckoutForm({ isSubmitting, errorMessage, onBack, onSubmit }: CheckoutFormProps) {
+export function CheckoutForm({ isSubmitting, onBack, onSubmit }: CheckoutFormProps) {
   const {
     register,
     handleSubmit,
@@ -42,9 +41,6 @@ export function CheckoutForm({ isSubmitting, errorMessage, onBack, onSubmit }: C
           <p className="mt-2 text-sm text-red-700" id="customer-email-error">
             {errors.customerEmail.message}
           </p>
-        ) : null}
-        {errorMessage ? (
-          <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">{errorMessage}</p>
         ) : null}
       </div>
       <div className="space-y-3 border-t border-zinc-200 pt-4">

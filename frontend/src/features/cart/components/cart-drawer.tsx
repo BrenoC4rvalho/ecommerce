@@ -12,7 +12,6 @@ type CartDrawerProps = {
   isOpen: boolean;
   cart?: Cart;
   isLoading: boolean;
-  errorMessage?: string;
   pendingItemId?: string;
   title?: string;
   children?: ReactNode;
@@ -37,7 +36,6 @@ export function CartDrawer({
   isOpen,
   cart,
   isLoading,
-  errorMessage,
   pendingItemId,
   title = 'Meu carrinho',
   children,
@@ -175,9 +173,6 @@ export function CartDrawer({
         {children ?? (
           <>
             {isLoading ? <Loading label="Carregando carrinho" /> : null}
-            {errorMessage ? (
-              <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">{errorMessage}</p>
-            ) : null}
             {cart?.items.length ? (
               <div className="flex min-h-0 flex-1 flex-col">
                 <ul className="min-h-0 flex-1 overflow-y-auto">
