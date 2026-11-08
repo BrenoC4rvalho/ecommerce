@@ -5,9 +5,9 @@ import { IconButton } from '@/components/ui/icon-button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
-type HeaderProps = { itemCount: number; onOpenCart: () => void; search: string; onSearchChange: (value: string) => void; onClearSearch: () => void };
+type HeaderProps = { itemCount: number; onOpenCart: () => void; search: string; onSearchChange: (value: string) => void };
 
-export function Header({ itemCount, onOpenCart, search, onSearchChange, onClearSearch }: HeaderProps) {
+export function Header({ itemCount, onOpenCart, search, onSearchChange }: HeaderProps) {
   return (
     <header className="border-b border-zinc-200 bg-white">
       <Container>
@@ -37,8 +37,7 @@ export function Header({ itemCount, onOpenCart, search, onSearchChange, onClearS
                   />
                 </svg>
               </span>
-              <Input className="pl-10 pr-10" onChange={(event) => onSearchChange(event.target.value)} placeholder="Buscar produtos" type="search" value={search} />
-              {search ? <button aria-label="Limpar busca" className="absolute inset-y-0 right-3 text-zinc-500 hover:text-black" onClick={onClearSearch} type="button">×</button> : null}
+              <Input className="pl-10" onChange={(event) => onSearchChange(event.target.value)} placeholder="Buscar produtos" type="search" value={search} />
             </label>
           </div>
           <div className="justify-self-end">

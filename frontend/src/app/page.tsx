@@ -110,7 +110,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header itemCount={cart.itemCount} onClearSearch={() => setSearchInput('')} onOpenCart={openCart} onSearchChange={setSearchInput} search={searchInput} />
+      <Header itemCount={cart.itemCount} onOpenCart={openCart} onSearchChange={setSearchInput} search={searchInput} />
       <main>
         <Container>
           <section className="py-8 sm:py-10">
