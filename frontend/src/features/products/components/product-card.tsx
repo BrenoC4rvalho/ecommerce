@@ -13,23 +13,28 @@ type ProductCardProps = {
 export function ProductCard({ product, isAdding = false, onAdd }: ProductCardProps) {
   const isUnavailable = product.stock === 0;
   return (
-    <article className="min-w-0">
-      <div className="relative aspect-square overflow-hidden rounded-xl">
+    <article className="group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md">
+      <div className="relative aspect-square overflow-hidden pt-4">
         <Image
           alt={`Imagem de ${product.name}`}
-          className="h-full w-full object-contain"
+          className="!inset-x-0 !top-4 !h-[calc(100%-1rem)] !w-full object-contain transition-transform duration-300 group-hover:scale-[1.03]"
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 360px"
           src={getProductImage(product.id)}
         />
       </div>
-      <div className="pt-3">
-        <h2 className="truncate text-sm font-medium text-black sm:text-base" title={product.name}>
+      <div className="flex flex-1 flex-col px-4 py-4">
+        <h2
+          className="line-clamp-2 min-h-10 text-sm font-semibold leading-5 text-black sm:text-base"
+          title={product.name}
+        >
           {product.name}
         </h2>
-        <p className="mt-1 text-sm text-zinc-600">{formatCurrency(product.price)}</p>
+        <p className="mt-2 text-base font-semibold tabular-nums text-black">
+          {formatCurrency(product.price)}
+        </p>
         <Button
-          className="mt-3 w-full"
+          className="mt-4 w-full"
           disabled={isUnavailable || isAdding || !onAdd}
           onClick={() => onAdd?.(product)}
         >

@@ -24,13 +24,18 @@ export function ProductGrid({ products, onAdd, addingProductId }: ProductGridPro
 
 export function ProductGridLoading() {
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-5 lg:grid-cols-3 lg:gap-x-6">
+    <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 lg:gap-6">
       {Array.from({ length: 6 }, (_, index) => (
-        <div className="animate-pulse" key={index}>
-          <div className="aspect-square rounded-xl bg-zinc-50" />
-          <div className="mt-3 h-4 w-3/4 rounded bg-zinc-100" />
-          <div className="mt-2 h-4 w-1/3 rounded bg-zinc-100" />
-          <div className="mt-3 h-10 rounded-lg bg-zinc-100" />
+        <div
+          className="animate-pulse overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm"
+          key={index}
+        >
+          <div className="aspect-square bg-white" />
+          <div className="px-4 py-4">
+            <div className="h-5 w-3/4 rounded bg-zinc-100" />
+            <div className="mt-2 h-5 w-1/2 rounded bg-zinc-100" />
+            <div className="mt-4 h-10 rounded-lg bg-zinc-100" />
+          </div>
         </div>
       ))}
     </div>
