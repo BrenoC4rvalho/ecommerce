@@ -5,7 +5,12 @@ import { IconButton } from '@/components/ui/icon-button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
-type HeaderProps = { itemCount: number; onOpenCart: () => void; search: string; onSearchChange: (value: string) => void };
+type HeaderProps = {
+  itemCount: number;
+  onOpenCart: () => void;
+  search: string;
+  onSearchChange: (value: string) => void;
+};
 
 export function Header({ itemCount, onOpenCart, search, onSearchChange }: HeaderProps) {
   return (
@@ -37,7 +42,13 @@ export function Header({ itemCount, onOpenCart, search, onSearchChange }: Header
                   />
                 </svg>
               </span>
-              <Input className="pl-10" onChange={(event) => onSearchChange(event.target.value)} placeholder="Buscar produtos" type="search" value={search} />
+              <Input
+                className="pl-10"
+                onChange={(event) => onSearchChange(event.target.value)}
+                placeholder="Buscar produtos"
+                type="search"
+                value={search}
+              />
             </label>
           </div>
           <div className="justify-self-end">

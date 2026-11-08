@@ -39,7 +39,10 @@ export default function Home() {
     'Não foi possível carregar os produtos.',
     'products',
   );
-  useEffect(() => setPage(1), [search]);
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setPage(1));
+    return () => window.cancelAnimationFrame(frame);
+  }, [search]);
   useEffect(() => {
     if (products.isError) toast.error(productsError);
   }, [products.isError, productsError, toast]);
@@ -110,7 +113,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header itemCount={cart.itemCount} onOpenCart={openCart} onSearchChange={setSearchInput} search={searchInput} />
+      <Header
+        itemCount={cart.itemCount}
+        onOpenCart={openCart}
+        onSearchChange={setSearchInput}
+        search={searchInput}
+      />
       <main>
         <Container>
           <section className="py-8 sm:py-10">
@@ -120,7 +128,9 @@ export default function Home() {
               </h1>
             </div>
             {products.isPending ? <ProductGridLoading /> : null}
-            {products.isFetching && !products.isPending ? <p className="mb-4 text-sm text-zinc-500">Buscando produtos…</p> : null}
+            {products.isFetching && !products.isPending ? (
+              <p className="mb-4 text-sm text-zinc-500">Buscando produtos…</p>
+            ) : null}
             {products.isError ? (
               <p className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
                 {productsError}
@@ -128,7 +138,9 @@ export default function Home() {
             ) : null}
             {products.data?.data.length === 0 ? (
               <p className="rounded-lg border border-zinc-200 p-6 text-sm text-zinc-600">
-                {search ? 'Nenhum produto encontrado para a sua busca.' : 'Nenhum produto disponível no momento.'}
+                {search
+                  ? 'Nenhum produto encontrado para a sua busca.'
+                  : 'Nenhum produto disponível no momento.'}
               </p>
             ) : null}
             {products.data?.data.length ? (
