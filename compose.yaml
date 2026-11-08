@@ -1,70 +1,98 @@
+name: ecommerce
+
 services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ecommerce
-      POSTGRES_PASSWORD: ecommerce_dev
-      POSTGRES_DB: ecommerce
-    ports:
-      - "127.0.0.1:5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-ecommerce}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ecommerce_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test:
-        - CMD-SHELL
-        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 12
+      start_period: 10s
+    networks:
+      - ecommerce_internal
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    restart: "no"
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-ecommerce}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ecommerce_dev}
+      DB_NAME: ${POSTGRES_DB:-ecommerce}
+    command: ["npm", "run", "migration:run:prod"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ecommerce_internal
 
   backend:
     build:
       context: ./backend
+      dockerfile: Dockerfile
       target: production
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
+      PORT: 3000
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_USER: ecommerce
-      DB_PASSWORD: ecommerce_dev
-      DB_NAME: ecommerce
-      TYPEORM_MIGRATIONS_RUN: "true"
-      MAIL_PROVIDER: mailpit
-      SMTP_HOST: mailpit
-      SMTP_PORT: 1025
-      SMTP_SECURE: "false"
-      MAIL_FROM: "E-commerce <no-reply@ecommerce.test>"
+      DB_USER: ${POSTGRES_USER:-ecommerce}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ecommerce_dev}
+      DB_NAME: ${POSTGRES_DB:-ecommerce}
+      TYPEORM_MIGRATIONS_RUN: "false"
     depends_on:
-      postgres:
-        condition: service_healthy
-      mailpit:
-        condition: service_started
-
-  mailpit:
-    image: axllent/mailpit:v1.24
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:1025:1025"
-      - "127.0.0.1:8025:8025"
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    networks:
+      - ecommerce_internal
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      target: production
+    restart: unless-stopped
     environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
       BACKEND_INTERNAL_URL: http://backend:3000
-    ports:
-      - "3001:3000"
-    volumes:
-      - ./frontend:/app
-      - frontend_node_modules:/app/node_modules
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    networks:
+      - ecommerce_internal
 
 volumes:
   postgres_data:
-  frontend_node_modules:
+    name: ecommerce_postgres_data
+
+networks:
+  ecommerce_internal:
+    name: ecommerce_internal

@@ -1,0 +1,40 @@
+services:
+  postgres:
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in the production environment file}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the production environment file}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in the production environment file}
+
+  migrate:
+    build:
+      target: production
+    environment:
+      NODE_ENV: production
+      DB_USER: ${POSTGRES_USER:?set POSTGRES_USER in the production environment file}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the production environment file}
+      DB_NAME: ${POSTGRES_DB:?set POSTGRES_DB in the production environment file}
+
+  backend:
+    build:
+      target: production
+    environment:
+      NODE_ENV: production
+      DB_USER: ${POSTGRES_USER:?set POSTGRES_USER in the production environment file}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the production environment file}
+      DB_NAME: ${POSTGRES_DB:?set POSTGRES_DB in the production environment file}
+      MAIL_PROVIDER: smtp
+      SMTP_HOST: ${SMTP_HOST:?set SMTP_HOST in the production environment file}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:?set SMTP_USER in the production environment file}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:?set SMTP_PASSWORD in the production environment file}
+      MAIL_FROM: ${MAIL_FROM:?set MAIL_FROM in the production environment file}
+      MAIL_SMTP_TIMEOUT_MS: ${MAIL_SMTP_TIMEOUT_MS:-10000}
+      MAIL_OUTBOX_BATCH_SIZE: ${MAIL_OUTBOX_BATCH_SIZE:-20}
+      MAIL_PROCESSING_TIMEOUT_SECONDS: ${MAIL_PROCESSING_TIMEOUT_SECONDS:-120}
+
+  frontend:
+    build:
+      target: production
+    ports:
+      - "127.0.0.1:3001:3000"
