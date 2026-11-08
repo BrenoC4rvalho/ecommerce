@@ -20,9 +20,12 @@ export class ProductsService {
       .andWhere('product.stock > :minimumStock', { minimumStock: 0 });
 
     if (search) {
-      query.andWhere('(product.name ILIKE :search OR product.description ILIKE :search)', {
-        search: `%${search}%`,
-      });
+      query.andWhere(
+        '(product.name ILIKE :search OR product.description ILIKE :search)',
+        {
+          search: `%${search}%`,
+        },
+      );
     }
 
     const [data, total] = await query
@@ -31,7 +34,10 @@ export class ProductsService {
       .take(limit)
       .getManyAndCount();
 
-    return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+    return {
+      data,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async findOne(id: string): Promise<Product> {

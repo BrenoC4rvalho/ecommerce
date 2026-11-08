@@ -15,12 +15,10 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USER ?? 'ecommerce',
   password: process.env.DB_PASSWORD ?? 'ecommerce_dev',
   database: process.env.DB_NAME ?? 'ecommerce',
-  
+
   entities: [Product, Cart, CartItem, Order, OrderItem, EmailOutbox],
 
-   migrations: [
-    __dirname + '/migrations/*{.ts,.js}',
-  ],
-  
+  migrations: [__dirname + '/migrations/*{.ts,.js}'],
+
   synchronize: false,
 });

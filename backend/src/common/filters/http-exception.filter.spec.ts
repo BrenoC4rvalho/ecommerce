@@ -1,8 +1,4 @@
-import {
-  ArgumentsHost,
-  BadRequestException,
-  HttpStatus,
-} from '@nestjs/common';
+import { ArgumentsHost, BadRequestException, HttpStatus } from '@nestjs/common';
 import { HttpExceptionFilter } from './http-exception.filter';
 
 describe('HttpExceptionFilter', () => {
@@ -39,9 +35,14 @@ describe('HttpExceptionFilter', () => {
   });
 
   it('hides implementation details for unexpected errors', () => {
-    new HttpExceptionFilter().catch(new Error('SELECT password FROM users'), host);
+    new HttpExceptionFilter().catch(
+      new Error('SELECT password FROM users'),
+      host,
+    );
 
-    expect(response.status).toHaveBeenCalledWith(HttpStatus.INTERNAL_SERVER_ERROR);
+    expect(response.status).toHaveBeenCalledWith(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+    );
     expect(response.json).toHaveBeenCalledWith({
       statusCode: 500,
       error: 'Internal Server Error',

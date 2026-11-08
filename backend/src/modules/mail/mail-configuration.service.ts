@@ -22,12 +22,20 @@ export class MailConfigurationService {
   constructor() {
     const provider = this.readProvider();
     const secure = this.readBoolean('SMTP_SECURE', false);
-    const port = this.readPositiveInteger('SMTP_PORT', provider === 'mailpit' ? 1025 : 587);
+    const port = this.readPositiveInteger(
+      'SMTP_PORT',
+      provider === 'mailpit' ? 1025 : 587,
+    );
     const timeoutMs = this.readPositiveInteger('MAIL_SMTP_TIMEOUT_MS', 10_000);
     const batchSize = this.readPositiveInteger('MAIL_OUTBOX_BATCH_SIZE', 20);
-    const processingTimeoutSeconds = this.readPositiveInteger('MAIL_PROCESSING_TIMEOUT_SECONDS', 120);
-    const host = process.env.SMTP_HOST ?? (provider === 'mailpit' ? 'localhost' : '');
-    const from = process.env.MAIL_FROM ?? 'E-commerce <no-reply@ecommerce.test>';
+    const processingTimeoutSeconds = this.readPositiveInteger(
+      'MAIL_PROCESSING_TIMEOUT_SECONDS',
+      120,
+    );
+    const host =
+      process.env.SMTP_HOST ?? (provider === 'mailpit' ? 'localhost' : '');
+    const from =
+      process.env.MAIL_FROM ?? 'E-commerce <no-reply@ecommerce.test>';
     const user = process.env.SMTP_USER;
     const password = process.env.SMTP_PASSWORD;
 
@@ -35,10 +43,23 @@ export class MailConfigurationService {
       throw new Error('Invalid SMTP configuration');
     }
     if (processingTimeoutSeconds * 1000 <= timeoutMs) {
-      throw new Error('MAIL_PROCESSING_TIMEOUT_SECONDS must exceed MAIL_SMTP_TIMEOUT_MS');
+      throw new Error(
+        'MAIL_PROCESSING_TIMEOUT_SECONDS must exceed MAIL_SMTP_TIMEOUT_MS',
+      );
     }
 
-    this.value = { provider, host, port, secure, user, password, from, timeoutMs, batchSize, processingTimeoutSeconds };
+    this.value = {
+      provider,
+      host,
+      port,
+      secure,
+      user,
+      password,
+      from,
+      timeoutMs,
+      batchSize,
+      processingTimeoutSeconds,
+    };
   }
 
   private readProvider(): MailProvider {
@@ -59,7 +80,8 @@ export class MailConfigurationService {
     const value = process.env[key];
     if (value === undefined) return fallback;
     const parsed = Number(value);
-    if (!Number.isInteger(parsed) || parsed <= 0) throw new Error(`${key} must be a positive integer`);
+    if (!Number.isInteger(parsed) || parsed <= 0)
+      throw new Error(`${key} must be a positive integer`);
     return parsed;
   }
 }

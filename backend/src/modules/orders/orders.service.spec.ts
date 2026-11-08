@@ -21,7 +21,9 @@ describe('OrdersService optimistic retry', () => {
   });
 
   it('returns a controlled conflict after the retry limit', async () => {
-    const transaction = jest.fn().mockRejectedValue(new StockVersionConflictError());
+    const transaction = jest
+      .fn()
+      .mockRejectedValue(new StockVersionConflictError());
     const service = new OrdersService({ transaction } as unknown as DataSource);
 
     await expect(

@@ -11,7 +11,6 @@ import {
 @Check('CHK_products_price_positive', '"price" > 0')
 @Check('CHK_products_stock_nonnegative', '"stock" >= 0')
 export class Product {
-
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
@@ -52,5 +51,4 @@ export class Product {
     type: 'timestamptz',
   })
   updatedAt!: Date;
-
 }

@@ -26,8 +26,14 @@ export enum EmailEventType {
 @Entity('email_outbox')
 @Unique('UQ_email_outbox_order_id_event_type', ['orderId', 'eventType'])
 @Index('IDX_email_outbox_status_next_attempt_at', ['status', 'nextAttemptAt'])
-@Index('IDX_email_outbox_status_processing_started_at', ['status', 'processingStartedAt'])
-@Check('CHK_email_outbox_status_valid', `"status" IN ('PENDING', 'PROCESSING', 'SENT', 'FAILED')`)
+@Index('IDX_email_outbox_status_processing_started_at', [
+  'status',
+  'processingStartedAt',
+])
+@Check(
+  'CHK_email_outbox_status_valid',
+  `"status" IN ('PENDING', 'PROCESSING', 'SENT', 'FAILED')`,
+)
 @Check('CHK_email_outbox_attempts_nonnegative', '"attempts" >= 0')
 export class EmailOutbox {
   @PrimaryGeneratedColumn('uuid')
@@ -52,10 +58,18 @@ export class EmailOutbox {
   @Column({ type: 'integer', default: 0 })
   attempts!: number;
 
-  @Column({ name: 'next_attempt_at', type: 'timestamptz', default: () => 'now()' })
+  @Column({
+    name: 'next_attempt_at',
+    type: 'timestamptz',
+    default: () => 'now()',
+  })
   nextAttemptAt!: Date;
 
-  @Column({ name: 'processing_started_at', type: 'timestamptz', nullable: true })
+  @Column({
+    name: 'processing_started_at',
+    type: 'timestamptz',
+    nullable: true,
+  })
   processingStartedAt!: Date | null;
 
   @Column({ name: 'processing_token', type: 'uuid', nullable: true })

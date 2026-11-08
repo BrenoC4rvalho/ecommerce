@@ -14,6 +14,10 @@ import { OrderConfirmationTemplateService } from './order-confirmation-template.
     OrderConfirmationTemplateService,
     EmailOutboxProcessor,
   ],
-  exports: [MailConfigurationService, MailTransportService, OrderConfirmationTemplateService],
+  exports: [
+    MailConfigurationService,
+    MailTransportService,
+    OrderConfirmationTemplateService,
+  ],
 })
 export class MailModule {}

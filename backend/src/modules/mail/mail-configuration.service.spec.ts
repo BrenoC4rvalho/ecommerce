@@ -42,7 +42,9 @@ describe('MailConfigurationService', () => {
     process.env.MAIL_PROVIDER = 'smtp';
     process.env.SMTP_PASSWORD = 'do-not-log-me';
 
-    expect(() => new MailConfigurationService()).toThrow('Invalid SMTP configuration');
+    expect(() => new MailConfigurationService()).toThrow(
+      'Invalid SMTP configuration',
+    );
     expect(() => new MailConfigurationService()).not.toThrow('do-not-log-me');
   });
 });

@@ -45,7 +45,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     } satisfies ErrorResponse);
   }
 
-  private toPayload(statusCode: number, exceptionResponse: string | object): ErrorResponse {
+  private toPayload(
+    statusCode: number,
+    exceptionResponse: string | object,
+  ): ErrorResponse {
     if (typeof exceptionResponse === 'string') {
       return {
         statusCode,

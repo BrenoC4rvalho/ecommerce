@@ -15,7 +15,10 @@ describe('CartsController', () => {
 
   it('uses the anonymous session cookie when adding an item', () => {
     const request = { cookies: { cart_session_id: 'session-id' } } as never;
-    const dto = { productId: '1fd8edce-2e8f-4ff9-a498-fc22ce193d8e', quantity: 2 };
+    const dto = {
+      productId: '1fd8edce-2e8f-4ff9-a498-fc22ce193d8e',
+      quantity: 2,
+    };
 
     controller.addItem('9d6f64e2-168b-4c04-8a04-510825d9b2cf', dto, request);
 

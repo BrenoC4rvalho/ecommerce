@@ -9,7 +9,14 @@ describe('OrderConfirmationTemplateService', () => {
       createdAt: new Date('2026-11-08T02:44:03.833Z'),
       totalAmount: '12.50',
       status: OrderStatus.CONFIRMED,
-      items: [{ productName: '<Keyboard>', quantity: 2, unitPrice: '6.25', subtotal: '12.50' }],
+      items: [
+        {
+          productName: '<Keyboard>',
+          quantity: 2,
+          unitPrice: '6.25',
+          subtotal: '12.50',
+        },
+      ],
     } as Order;
 
     const rendered = new OrderConfirmationTemplateService().render(order);

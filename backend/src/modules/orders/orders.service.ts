@@ -14,7 +14,11 @@ import { Product } from '../products/entities/product.entity';
 import { CheckoutDto } from './dto/checkout.dto';
 import { Order, OrderStatus } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
-import { EmailEventType, EmailOutbox, EmailOutboxStatus } from '../mail/entities/email-outbox.entity';
+import {
+  EmailEventType,
+  EmailOutbox,
+  EmailOutboxStatus,
+} from '../mail/entities/email-outbox.entity';
 
 export class StockVersionConflictError extends Error {}
 
@@ -30,7 +34,8 @@ export class OrdersService {
         );
       } catch (error) {
         if (!(error instanceof StockVersionConflictError)) throw error;
-        if (attempt === 3) throw new ConflictException('Stock changed during checkout');
+        if (attempt === 3)
+          throw new ConflictException('Stock changed during checkout');
       }
     }
 
@@ -50,19 +55,31 @@ export class OrdersService {
     if (cart.status !== CartStatus.ACTIVE) {
       throw new ConflictException('Cart has already been checked out');
     }
-    if (isCartExpired(cart.updatedAt)) throw new NotFoundException('Cart not found');
+    if (isCartExpired(cart.updatedAt))
+      throw new NotFoundException('Cart not found');
 
     const items = await manager.find(CartItem, { where: { cartId: cart.id } });
-    if (items.length === 0) throw new UnprocessableEntityException('Cart is empty');
+    if (items.length === 0)
+      throw new UnprocessableEntityException('Cart is empty');
 
     const productIds = [...new Set(items.map((item) => item.productId))].sort();
-    const products = await manager.findBy(Product, productIds.map((id) => ({ id })));
-    const productsById = new Map(products.map((product) => [product.id, product]));
+    const products = await manager.findBy(
+      Product,
+      productIds.map((id) => ({ id })),
+    );
+    const productsById = new Map(
+      products.map((product) => [product.id, product]),
+    );
     const lines = items.map((item) => {
       const product = productsById.get(item.productId);
       if (!product) throw new NotFoundException('Product not found');
-      if (!product.isActive) throw new UnprocessableEntityException('Product is inactive');
-      return { item, product, subtotal: multiplyMoney(product.price, item.quantity) };
+      if (!product.isActive)
+        throw new UnprocessableEntityException('Product is inactive');
+      return {
+        item,
+        product,
+        subtotal: multiplyMoney(product.price, item.quantity),
+      };
     });
 
     for (const productId of productIds) {
@@ -76,14 +93,18 @@ export class OrdersService {
       );
       const updatedRows = Array.isArray(result[0]) ? result[0] : result;
       if (updatedRows.length === 0) {
-        await this.throwStockFailure(manager, line.product.id, line.item.quantity);
+        await this.throwStockFailure(
+          manager,
+          line.product.id,
+          line.item.quantity,
+        );
       }
     }
 
     const totalAmount = sumMoney(lines.map((line) => line.subtotal));
-    const [{ sequence, year }] = await manager.query(
+    const [{ sequence, year }] = (await manager.query(
       "SELECT nextval('orders_order_number_seq')::text AS sequence, to_char(CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo', 'YYYY') AS year",
-    ) as Array<{ sequence: string; year: string }>;
+    )) as Array<{ sequence: string; year: string }>;
     const orderNumber = `PED-${year}-${sequence.padStart(6, '0')}`;
     const order = await manager.save(
       manager.create(Order, {
@@ -117,14 +138,23 @@ export class OrdersService {
       }),
     );
 
-    return manager.findOneOrFail(Order, { where: { id: order.id }, relations: { items: true } });
+    return manager.findOneOrFail(Order, {
+      where: { id: order.id },
+      relations: { items: true },
+    });
   }
 
-  private async throwStockFailure(manager: EntityManager, productId: string, quantity: number): Promise<never> {
+  private async throwStockFailure(
+    manager: EntityManager,
+    productId: string,
+    quantity: number,
+  ): Promise<never> {
     const product = await manager.findOneBy(Product, { id: productId });
     if (!product) throw new NotFoundException('Product not found');
-    if (!product.isActive) throw new UnprocessableEntityException('Product is inactive');
-    if (product.stock < quantity) throw new ConflictException('Insufficient stock');
+    if (!product.isActive)
+      throw new UnprocessableEntityException('Product is inactive');
+    if (product.stock < quantity)
+      throw new ConflictException('Insufficient stock');
     throw new StockVersionConflictError('Stock version conflict');
   }
 }

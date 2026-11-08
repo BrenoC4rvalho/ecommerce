@@ -17,7 +17,13 @@ const runMailpitTest = process.env.MAILPIT_INTEGRATION === 'true';
 
     const response = await fetch('http://localhost:8025/api/v1/messages');
     expect(response.ok).toBe(true);
-    const body = await response.json() as { messages?: Array<{ To?: Array<{ Address?: string }> }> };
-    expect(body.messages?.some((message) => message.To?.some((address) => address.Address === recipient))).toBe(true);
+    const body = (await response.json()) as {
+      messages?: Array<{ To?: Array<{ Address?: string }> }>;
+    };
+    expect(
+      body.messages?.some((message) =>
+        message.To?.some((address) => address.Address === recipient),
+      ),
+    ).toBe(true);
   });
 });

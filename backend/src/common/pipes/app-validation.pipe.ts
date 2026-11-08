@@ -1,4 +1,8 @@
-import { BadRequestException, ValidationError, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  ValidationError,
+  ValidationPipe,
+} from '@nestjs/common';
 
 function validationDetails(errors: ValidationError[]): unknown[] {
   return errors.map(({ property, constraints, children }) => ({

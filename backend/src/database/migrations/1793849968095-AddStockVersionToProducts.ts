@@ -16,6 +16,8 @@ export class AddStockVersionToProducts1793849968095 implements MigrationInterfac
     await queryRunner.query(
       'ALTER TABLE "products" DROP CONSTRAINT "CHK_products_stock_version_nonnegative"',
     );
-    await queryRunner.query('ALTER TABLE "products" DROP COLUMN "stock_version"');
+    await queryRunner.query(
+      'ALTER TABLE "products" DROP COLUMN "stock_version"',
+    );
   }
 }

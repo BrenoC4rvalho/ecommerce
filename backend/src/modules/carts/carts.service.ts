@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
 import { DataSource, EntityManager, Repository } from 'typeorm';
@@ -28,7 +32,10 @@ export class CartsService {
     }
 
     return this.cartsRepository.save(
-      this.cartsRepository.create({ sessionId: randomUUID(), status: CartStatus.ACTIVE }),
+      this.cartsRepository.create({
+        sessionId: randomUUID(),
+        status: CartStatus.ACTIVE,
+      }),
     );
   }
 
@@ -80,20 +87,29 @@ export class CartsService {
         return;
       }
 
-      await manager.save(manager.create(CartItem, {
-        cartId: id,
-        productId: dto.productId,
-        quantity: dto.quantity,
-      }));
+      await manager.save(
+        manager.create(CartItem, {
+          cartId: id,
+          productId: dto.productId,
+          quantity: dto.quantity,
+        }),
+      );
       await manager.save(cart);
     });
     return this.findOne(id, sessionId);
   }
 
-  async updateItem(id: string, itemId: string, sessionId: string, dto: UpdateCartItemDto) {
+  async updateItem(
+    id: string,
+    itemId: string,
+    sessionId: string,
+    dto: UpdateCartItemDto,
+  ) {
     await this.dataSource.transaction(async (manager) => {
       const cart = await this.requireActiveCart(manager, id, sessionId);
-      const item = await manager.findOne(CartItem, { where: { id: itemId, cartId: id } });
+      const item = await manager.findOne(CartItem, {
+        where: { id: itemId, cartId: id },
+      });
       if (!item) throw new NotFoundException('Cart item not found');
 
       const product = await manager.findOne(Product, {
@@ -110,7 +126,11 @@ export class CartsService {
     return this.findOne(id, sessionId);
   }
 
-  async removeItem(id: string, itemId: string, sessionId: string): Promise<void> {
+  async removeItem(
+    id: string,
+    itemId: string,
+    sessionId: string,
+  ): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
       const cart = await this.requireActiveCart(manager, id, sessionId);
       const result = await manager.delete(CartItem, { id: itemId, cartId: id });
@@ -119,7 +139,11 @@ export class CartsService {
     });
   }
 
-  private async requireActiveCart(manager: EntityManager, id: string, sessionId: string): Promise<Cart> {
+  private async requireActiveCart(
+    manager: EntityManager,
+    id: string,
+    sessionId: string,
+  ): Promise<Cart> {
     const cart = await manager.findOne(Cart, {
       where: { id, sessionId },
       lock: { mode: 'pessimistic_write' },
@@ -128,11 +152,15 @@ export class CartsService {
     if (cart.status !== CartStatus.ACTIVE) {
       throw new ConflictException('Cart has already been checked out');
     }
-    if (isCartExpired(cart.updatedAt)) throw new NotFoundException('Cart not found');
+    if (isCartExpired(cart.updatedAt))
+      throw new NotFoundException('Cart not found');
     return cart;
   }
 
-  private ensureQuantityWithinStock(product: Product, requestedQuantity: number): void {
+  private ensureQuantityWithinStock(
+    product: Product,
+    requestedQuantity: number,
+  ): void {
     if (requestedQuantity <= product.stock) return;
 
     throw new ConflictException({

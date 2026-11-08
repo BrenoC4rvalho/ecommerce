@@ -8,7 +8,9 @@ import { Cart, CartStatus } from './entities/cart.entity';
 export class AbandonedCartsCleanupService {
   private readonly logger = new Logger(AbandonedCartsCleanupService.name);
 
-  constructor(@InjectRepository(Cart) private readonly cartsRepository: Repository<Cart>) {}
+  constructor(
+    @InjectRepository(Cart) private readonly cartsRepository: Repository<Cart>,
+  ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { timeZone: 'UTC' })
   async cleanExpiredCarts(): Promise<number> {
