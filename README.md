@@ -27,6 +27,22 @@ docker compose -f compose.yaml -f compose.dev.yaml up --build
 
 O serviço `migrate` executa as migrations versionadas depois que o banco fica saudável e antes da API iniciar. Os volumes `backend_node_modules` e `frontend_node_modules` evitam que bind mounts ocultem dependências instaladas na imagem. Alterações nos dois projetos usam hot reload.
 
+### Dados de desenvolvimento (Mock Data)
+
+Ao iniciar o projeto pela primeira vez em modo de desenvolvimento, o backend verifica se o banco PostgreSQL possui produtos cadastrados. Caso o banco esteja vazio, o seed de desenvolvimento existente insere automaticamente 30 produtos fictícios.
+
+Esses produtos mockados são usados para testar a listagem de produtos, a pesquisa, a paginação, a exibição dos produtos no frontend, a adição de produtos ao carrinho e o fluxo de checkout.
+
+O seed:
+
+- é executado somente no ambiente `development`;
+- popula o banco somente quando não existem produtos cadastrados;
+- armazena os dados no PostgreSQL;
+- não duplica os produtos ao reiniciar os containers;
+- não é executado em produção.
+
+Não é necessário cadastrar produtos manualmente para começar a testar o E-commerce. Basta iniciar o ambiente de desenvolvimento seguindo as instruções de Docker acima.
+
 Para validar a configuração:
 
 ```bash
