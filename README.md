@@ -35,7 +35,97 @@ docker compose -f compose.yaml -f compose.dev.yaml exec frontend npm run test:sm
 docker compose -f compose.yaml -f compose.dev.yaml exec frontend npm run test:purchase-flow
 ```
 
-O teste de compra requer ao menos um produto ativo com estoque de duas unidades ou mais. O e-mail de checkout aparece no Mailpit; nenhum SMTP real é usado neste perfil.
+O teste de compra requer ao menos um produto ativo com estoque de duas unidades ou mais. Por padrão, o e-mail de checkout aparece no Mailpit. O perfil de desenvolvimento também permite substituir esse padrão por SMTP real, conforme a seção a seguir.
+
+## Configuração de envio de e-mails
+
+### Visão geral
+
+O checkout grava o pedido e uma notificação na Transactional Outbox na mesma transação. O `EmailOutboxProcessor` envia essa notificação usando o transporte Nodemailer configurado. Mailpit e Resend usam a mesma arquitetura; somente o provedor SMTP muda.
+
+| Característica | Mailpit | Resend |
+| --- | --- | --- |
+| Envio real | Não | Sim |
+| Recebe na caixa de entrada | Não | Sim |
+| Necessita conta externa | Não | Sim |
+| Necessita domínio verificado | Não | Conforme configuração |
+| Uso recomendado | Desenvolvimento | Testes reais e produção |
+
+### Mailpit — desenvolvimento
+
+Mailpit é o modo padrão em desenvolvimento. Ele recebe e exibe as mensagens localmente, sem entregá-las à caixa de entrada real do destinatário.
+
+Copie `.env.example` para `.env` e mantenha ou configure estas variáveis:
+
+```dotenv
+MAIL_PROVIDER=mailpit
+SMTP_HOST=mailpit
+SMTP_PORT=1025
+SMTP_SECURE=false
+MAIL_FROM="E-commerce <no-reply@ecommerce.test>"
+```
+
+Inicie a stack:
+
+```bash
+docker compose -f compose.yaml -f compose.dev.yaml up --build
+```
+
+O backend acessa o SMTP pela rede Docker em `mailpit:1025`. Após finalizar uma compra, abra [http://localhost:8025](http://localhost:8025) para visualizar a mensagem. A porta SMTP também é publicada localmente em `127.0.0.1:1025`, mas não é necessária para o fluxo da aplicação.
+
+### Resend — envio real
+
+Para enviar e-mails reais, crie uma conta em [Resend](https://resend.com/), gere uma API Key SMTP e, quando necessário, configure e valide o domínio do remetente. Use somente um `MAIL_FROM` autorizado pela conta Resend. O remetente de teste da Resend possui restrições próprias.
+
+No arquivo `.env` local, substitua a configuração Mailpit por:
+
+```dotenv
+MAIL_PROVIDER=smtp
+SMTP_HOST=smtp.resend.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=resend
+SMTP_PASSWORD=re_SUA_API_KEY
+MAIL_FROM="Sua Loja <contato@dominio-verificado.com>"
+```
+
+`SMTP_PASSWORD` recebe a API Key da Resend e nunca deve ser versionada no Git. Reinicie somente o backend para que as novas variáveis sejam carregadas:
+
+```bash
+docker compose -f compose.yaml -f compose.dev.yaml up -d --force-recreate backend
+```
+
+Faça uma compra de teste e acompanhe a aceitação e o status da entrega no painel da Resend. A aceitação SMTP confirma que a Resend aceitou a mensagem, mas a entrega final deve ser verificada no painel do provedor.
+
+### Como alternar entre os provedores
+
+Edite o `.env` com a configuração do provedor desejado e recrie o container do backend:
+
+```bash
+docker compose -f compose.yaml -f compose.dev.yaml up -d --force-recreate backend
+```
+
+Para voltar ao Mailpit, restaure `MAIL_PROVIDER=mailpit`, `SMTP_HOST=mailpit`, `SMTP_PORT=1025` e `SMTP_SECURE=false`, então execute o mesmo comando. Não use `docker compose down -v`: esse comando remove o volume persistente do PostgreSQL.
+
+As variáveis opcionais de operação são `MAIL_SMTP_TIMEOUT_MS` (padrão `10000`), `MAIL_OUTBOX_BATCH_SIZE` (padrão `20`) e `MAIL_PROCESSING_TIMEOUT_SECONDS` (padrão `120`). O tempo de processamento deve ser maior que o timeout SMTP.
+
+### Fluxo de envio e retentativas
+
+1. O cliente finaliza a compra.
+2. O pedido é persistido e uma notificação de confirmação é registrada na Outbox.
+3. O `EmailOutboxProcessor` procura notificações pendentes a cada 30 segundos.
+4. O transporte configurado envia a mensagem por Mailpit ou SMTP/Resend.
+5. Em caso de sucesso, a notificação é marcada como enviada.
+6. Em caso de falha, a notificação é reagendada após 1, 5, 15 e 60 minutos.
+7. Após a quinta tentativa sem sucesso, a notificação é marcada como falha, preservando o erro sanitizado para diagnóstico.
+
+### Segurança das credenciais
+
+- Não versione o arquivo `.env` e não compartilhe API Keys ou senhas SMTP.
+- Use `.env.example` apenas como referência para variáveis locais sem segredos reais.
+- Configure credenciais reais somente no ambiente local protegido ou na plataforma de implantação.
+- Não use `NEXT_PUBLIC_` para variáveis SMTP: elas são exclusivas do runtime do backend.
+- Use apenas remetentes autorizados pelo provedor para evitar rejeições de envio.
 
 ## Produção
 
